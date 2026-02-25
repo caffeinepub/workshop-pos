@@ -1,0 +1,16 @@
+{
+  "frontend/src/App.tsx": "Main application component with TanStack Router setup, authentication guard that shows LoginPage when not authenticated, and all seven page routes with defensive error handling in the App component.",
+  "frontend/src/pages/PosPage.tsx": "Point of sale screen with product selection grid, cart management, discount/loyalty controls, and checkout functionality connected to backend.",
+  "frontend/src/pages/HistoryPage.tsx": "Transaction history view displaying completed transactions with item details, totals, and applied discounts from backend data.",
+  "frontend/src/pages/ProductsPage.tsx": "Product catalog management page with search, table view of all products, and delete functionality.",
+  "frontend/src/components/pos/TopNav.tsx": "Navigation component with three buttons (POS, Products, History) for switching between main application views.",
+  "frontend/src/components/pos/CartLineItems.tsx": "Reusable cart component displaying line items with quantity controls, individual prices, and remove buttons.",
+  "frontend/src/hooks/usePosDraft.ts": "React hook managing in-memory POS draft state including items map, discount, loyalty card, currency, and computed subtotals.",
+  "frontend/src/hooks/useCurrency.ts": "Utility hook providing currency formatting functions and symbol mapping for USD and EUR.",
+  "frontend/src/hooks/useProducts.ts": "React Query hook for loading products from backend and performing product deletion mutations.",
+  "frontend/src/hooks/useTransactions.ts": "React Query hook for retrieving transaction history from the backend canister.",
+  "frontend/src/hooks/usePersistedDraft.ts": "Hook managing draft persistence to backend and checkout flow with transaction finalization.",
+  "frontend/src/index.css": "Global styles with warm amber/ochre theme using OKLCH color system for both light and dark modes.",
+  "frontend/src/hooks/useAuth.ts": "Authentication hook that manages login/logout state using localStorage, with robust error handling, data corruption recovery, and automatic admin credential reset to ensure `admin`/`admin123` always works.",
+  "frontend/src/pages/LoginPage.tsx": "Login page with username/password form, inline loading spinner, defensive error handling with try/catch, and helpful error messages in Indonesian including credential hint when login fails."
+}

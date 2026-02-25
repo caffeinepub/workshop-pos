@@ -1,0 +1,45 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-fix-the-login-authentication-logic-in-useauth-ts-so-that-logging-in-with-username-admin-and-password-admin123-works-correctly-ensure-the-seeded-default-admin-account-is-always-initialized-in-localstorage-before-the-login-check-runs-so-the-credentials-are-found-and-validated-successfully",
+      "featureTitle": "Fix the login authentication logic in useAuth.ts so that logging in with username 'admin' and password 'admin123' works correctly. Ensure the seeded default admin account is always initialized in localStorage before the login check runs, so the credentials are found and validated successfully.",
+      "files": [
+        "frontend/src/hooks/useAuth.ts",
+        "frontend/src/pages/LoginPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-the-loginpage-renders-correctly-at-all-times-it-must-never-show-a-blank-page-or-an-unhandled-error-screen-wrap-the-login-form-in-an-error-boundary-or-add-defensive-checks-so-that-any-runtime-error-displays-a-user-friendly-fallback-message-instead-of-a-blank-crashed-page",
+      "featureTitle": "Ensure the LoginPage renders correctly at all times — it must never show a blank page or an unhandled error screen. Wrap the login form in an error boundary or add defensive checks so that any runtime error displays a user-friendly fallback message instead of a blank/crashed page.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/pages/LoginPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    }
+  ]
+}
