@@ -1,17 +1,32 @@
-// User Data management page with add/delete users, roles, accessibility, password, and profile photo
-import { useState, useRef } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import type { WorkshopUser, UserRole, UserAccessibility } from '../hooks/useAuth';
+import React, { useState } from 'react';
+import { useAuth, WorkshopUser, UserRole } from '../hooks/useAuth';
+import { PermissionsChecklist, Permission, getDefaultPermissions, ALL_PERMISSIONS } from '../components/user/PermissionsChecklist';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,466 +37,496 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { UserPlus, Trash2, Users, Upload, Camera, ShieldCheck, Eye } from 'lucide-react';
-import { toast } from 'sonner';
+import { Pencil, Trash2, UserPlus, Shield } from 'lucide-react';
 
-const ROLE_OPTIONS: UserRole[] = ['Admin', 'Kasir', 'Teknisi'];
-const ACCESSIBILITY_OPTIONS: UserAccessibility[] = ['Full Access', 'POS Only', 'Reports Only'];
+const ROLE_COLORS: Record<UserRole, string> = {
+  Admin: 'bg-primary text-primary-foreground',
+  User: 'bg-secondary text-secondary-foreground',
+  Kasir: 'bg-muted text-muted-foreground',
+};
 
-function getRoleBadgeVariant(role?: UserRole): 'default' | 'secondary' | 'outline' {
-  if (role === 'Admin') return 'default';
-  if (role === 'Kasir') return 'secondary';
-  return 'outline';
+/** Parse accessibility JSON string into Permission[] */
+function parsePermissions(accessibility: string): Permission[] {
+  try {
+    const ids: string[] = JSON.parse(accessibility);
+    return ALL_PERMISSIONS.map((p) => ({ ...p, checked: ids.includes(p.id) }));
+  } catch {
+    return getDefaultPermissions('User');
+  }
 }
 
-function getAccessibilityIcon(accessibility?: UserAccessibility) {
-  if (accessibility === 'Full Access') return <ShieldCheck className="w-3 h-3 mr-1" />;
-  if (accessibility === 'POS Only') return <Eye className="w-3 h-3 mr-1" />;
-  return <Eye className="w-3 h-3 mr-1" />;
+/** Serialize Permission[] back to JSON string of IDs */
+function serializePermissions(permissions: Permission[]): string {
+  return JSON.stringify(permissions.filter((p) => p.checked).map((p) => p.id));
 }
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n.charAt(0))
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
+interface AddFormState {
+  name: string;
+  username: string;
+  password: string;
+  userRole: UserRole;
+  permissions: Permission[];
 }
 
-export function UserDataPage() {
-  const { getAllUsers, addUser, deleteUser, updateUserPhoto, currentUser } = useAuth();
-  const [users, setUsers] = useState<WorkshopUser[]>(() => getAllUsers());
+interface EditFormState {
+  name: string;
+  username: string;
+  password: string;
+  userRole: UserRole;
+  permissions: Permission[];
+}
 
-  // Add dialog state
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newUsername, setNewUsername] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [newRole, setNewRole] = useState<UserRole>('Kasir');
-  const [newAccessibility, setNewAccessibility] = useState<UserAccessibility>('POS Only');
-  const [newPhoto, setNewPhoto] = useState<string>('');
-  const [adding, setAdding] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+interface AuthFormState {
+  userRole: UserRole;
+  permissions: Permission[];
+}
 
-  // Delete dialog state
+export default function UserDataPage() {
+  const { users, addUser, updateUser, deleteUser, currentUser } = useAuth();
+
+  const isAdmin = currentUser?.userRole === 'Admin';
+
+  // --- Add User Dialog ---
+  const [addOpen, setAddOpen] = useState(false);
+  const [addForm, setAddForm] = useState<AddFormState>({
+    name: '',
+    username: '',
+    password: '',
+    userRole: 'User',
+    permissions: getDefaultPermissions('User'),
+  });
+
+  const openAdd = () => {
+    setAddForm({ name: '', username: '', password: '', userRole: 'User', permissions: getDefaultPermissions('User') });
+    setAddOpen(true);
+  };
+
+  const handleAddRoleChange = (role: UserRole) => {
+    setAddForm(f => ({ ...f, userRole: role, permissions: getDefaultPermissions(role) }));
+  };
+
+  const handleAddSave = () => {
+    if (!addForm.name.trim() || !addForm.username.trim() || !addForm.password.trim()) return;
+    addUser({
+      name: addForm.name.trim(),
+      username: addForm.username.trim(),
+      password: addForm.password,
+      userRole: addForm.userRole,
+      accessibility: serializePermissions(addForm.permissions),
+    });
+    setAddOpen(false);
+  };
+
+  // --- Edit User Dialog (full) ---
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<WorkshopUser | null>(null);
+  const [editForm, setEditForm] = useState<EditFormState>({
+    name: '',
+    username: '',
+    password: '',
+    userRole: 'User',
+    permissions: getDefaultPermissions('User'),
+  });
+
+  const openEdit = (user: WorkshopUser) => {
+    setEditTarget(user);
+    setEditForm({
+      name: user.name,
+      username: user.username,
+      password: user.password,
+      userRole: user.userRole,
+      permissions: parsePermissions(user.accessibility),
+    });
+    setEditOpen(true);
+  };
+
+  const handleEditRoleChange = (role: UserRole) => {
+    setEditForm(f => ({ ...f, userRole: role, permissions: getDefaultPermissions(role) }));
+  };
+
+  const handleEditSave = () => {
+    if (!editTarget || !editForm.name.trim() || !editForm.username.trim()) return;
+    updateUser(editTarget.id, {
+      name: editForm.name.trim(),
+      username: editForm.username.trim(),
+      password: editForm.password,
+      userRole: editForm.userRole,
+      accessibility: serializePermissions(editForm.permissions),
+    });
+    setEditOpen(false);
+    setEditTarget(null);
+  };
+
+  // --- Edit Authorization Dialog (role + permissions only) ---
+  const [authEditOpen, setAuthEditOpen] = useState(false);
+  const [authEditTarget, setAuthEditTarget] = useState<WorkshopUser | null>(null);
+  const [authEditForm, setAuthEditForm] = useState<AuthFormState>({
+    userRole: 'User',
+    permissions: getDefaultPermissions('User'),
+  });
+
+  const openAuthEdit = (user: WorkshopUser) => {
+    setAuthEditTarget(user);
+    setAuthEditForm({
+      userRole: user.userRole,
+      permissions: parsePermissions(user.accessibility),
+    });
+    setAuthEditOpen(true);
+  };
+
+  const handleAuthEditRoleChange = (role: UserRole) => {
+    setAuthEditForm(f => ({ ...f, userRole: role, permissions: getDefaultPermissions(role) }));
+  };
+
+  const handleAuthEditSave = () => {
+    if (!authEditTarget) return;
+    updateUser(authEditTarget.id, {
+      userRole: authEditForm.userRole,
+      accessibility: serializePermissions(authEditForm.permissions),
+    });
+    setAuthEditOpen(false);
+    setAuthEditTarget(null);
+  };
+
+  // --- Delete Dialog ---
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WorkshopUser | null>(null);
 
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const uploadPhotoRefs = useRef<Record<string, HTMLInputElement | null>>({});
-
-  const refreshUsers = () => setUsers(getAllUsers());
-
-  const resetAddForm = () => {
-    setNewName('');
-    setNewUsername('');
-    setNewPassword('');
-    setNewRole('Kasir');
-    setNewAccessibility('POS Only');
-    setNewPhoto('');
-    setShowPassword(false);
+  const openDelete = (user: WorkshopUser) => {
+    setDeleteTarget(user);
+    setDeleteOpen(true);
   };
 
-  const handleAddUser = async () => {
-    if (!newName.trim()) {
-      toast.error('Nama lengkap wajib diisi');
-      return;
-    }
-    if (!newUsername.trim()) {
-      toast.error('Username wajib diisi');
-      return;
-    }
-    if (!newPassword.trim()) {
-      toast.error('Password wajib diisi');
-      return;
-    }
-    setAdding(true);
-    const success = addUser({
-      username: newUsername.trim(),
-      password: newPassword.trim(),
-      name: newName.trim(),
-      userRole: newRole,
-      accessibility: newAccessibility,
-      photoBase64: newPhoto || undefined,
-    });
-    setAdding(false);
-    if (success) {
-      toast.success(`User "${newName}" berhasil ditambahkan`);
-      setShowAddDialog(false);
-      resetAddForm();
-      refreshUsers();
-    } else {
-      toast.error('Username sudah digunakan, gunakan username lain');
-    }
-  };
-
-  const handleConfirmDelete = () => {
+  const handleDeleteConfirm = () => {
     if (!deleteTarget) return;
-    if (deleteTarget.username === 'admin') {
-      toast.error('Admin default tidak dapat dihapus');
-      setDeleteTarget(null);
-      return;
-    }
-    deleteUser(deleteTarget.username);
-    toast.success(`User "${deleteTarget.name || deleteTarget.username}" berhasil dihapus`);
+    deleteUser(deleteTarget.id);
+    setDeleteOpen(false);
     setDeleteTarget(null);
-    refreshUsers();
-  };
-
-  const handlePhotoUpload = (username: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const base64 = ev.target?.result as string;
-      updateUserPhoto(username, base64);
-      toast.success('Foto profil diperbarui');
-      refreshUsers();
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleNewPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setNewPhoto(ev.target?.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Users className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Data Pengguna</h1>
-            <p className="text-sm text-muted-foreground">Kelola akun pengguna sistem</p>
-          </div>
+    <div className="p-6 max-w-5xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Data Pengguna</h1>
+          <p className="text-muted-foreground text-sm mt-1">Kelola akun dan otorisasi pengguna</p>
         </div>
-        <Button onClick={() => { resetAddForm(); setShowAddDialog(true); }} className="gap-2">
-          <UserPlus className="w-4 h-4" />
-          Tambah User
-        </Button>
+        {isAdmin && (
+          <Button onClick={openAdd} className="gap-2">
+            <UserPlus className="w-4 h-4" />
+            Tambah Pengguna
+          </Button>
+        )}
       </div>
 
-      {/* Users Table */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">
-            Daftar Pengguna
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
-              ({users.length} user)
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40">
-                  <TableHead className="w-16 pl-4">Foto</TableHead>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Aksesibilitas</TableHead>
-                  <TableHead className="text-right pr-4">Aksi</TableHead>
+      <div className="rounded-lg border border-border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Pengguna</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Izin Akses</TableHead>
+              {isAdmin && <TableHead className="text-right">Aksi</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map((user) => {
+              const perms = parsePermissions(user.accessibility);
+              const checkedPerms = perms.filter(p => p.checked);
+
+              return (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      {user.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium text-foreground">{user.name}</div>
+                        <div className="text-xs text-muted-foreground">{user.username}</div>
+                        {user.id === currentUser?.id && (
+                          <div className="text-xs text-primary font-medium">(Anda)</div>
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ROLE_COLORS[user.userRole]}`}>
+                      {user.userRole}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1 max-w-xs">
+                      {checkedPerms.length === 0 ? (
+                        <span className="text-muted-foreground text-xs">Tidak ada izin</span>
+                      ) : checkedPerms.length > 4 ? (
+                        <>
+                          {checkedPerms.slice(0, 3).map(p => (
+                            <Badge key={p.id} variant="outline" className="text-xs">{p.label}</Badge>
+                          ))}
+                          <Badge variant="secondary" className="text-xs">+{checkedPerms.length - 3} lainnya</Badge>
+                        </>
+                      ) : (
+                        checkedPerms.map(p => (
+                          <Badge key={p.id} variant="outline" className="text-xs">{p.label}</Badge>
+                        ))
+                      )}
+                    </div>
+                  </TableCell>
+                  {isAdmin && (
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openAuthEdit(user)}
+                          className="gap-1.5 text-xs"
+                          title="Edit Otorisasi"
+                        >
+                          <Shield className="w-3.5 h-3.5" />
+                          Otorisasi
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEdit(user)}
+                          className="gap-1.5 text-xs"
+                          title="Edit Pengguna"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          Edit
+                        </Button>
+                        {user.id !== currentUser?.id && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => openDelete(user)}
+                            className="gap-1.5 text-xs"
+                            title="Hapus Pengguna"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Hapus
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => {
-                  const isDefaultAdmin = user.username === 'admin';
-                  const isCurrentUser = user.username === currentUser?.username;
-                  return (
-                    <TableRow key={user.username} className="hover:bg-muted/30">
-                      {/* Avatar + Upload */}
-                      <TableCell className="pl-4">
-                        <div className="relative group w-10 h-10">
-                          <Avatar className="w-10 h-10 ring-2 ring-border">
-                            <AvatarImage src={user.photoBase64} alt={user.name} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
-                              {getInitials(user.name || user.username)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <button
-                            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                            onClick={() => uploadPhotoRefs.current[user.username]?.click()}
-                            title="Ganti foto"
-                          >
-                            <Camera className="w-4 h-4 text-white" />
-                          </button>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            ref={(el) => { uploadPhotoRefs.current[user.username] = el; }}
-                            onChange={(e) => handlePhotoUpload(user.username, e)}
-                          />
-                        </div>
-                      </TableCell>
-
-                      {/* Name */}
-                      <TableCell>
-                        <div className="font-medium text-foreground">
-                          {user.name || user.username}
-                        </div>
-                        {isCurrentUser && (
-                          <div className="text-xs text-primary font-medium">● Anda</div>
-                        )}
-                      </TableCell>
-
-                      {/* Username */}
-                      <TableCell className="text-muted-foreground font-mono text-sm">
-                        {user.username}
-                      </TableCell>
-
-                      {/* Role */}
-                      <TableCell>
-                        <Badge variant={getRoleBadgeVariant(user.userRole)}>
-                          {user.userRole || (isDefaultAdmin ? 'Admin' : 'Kasir')}
-                        </Badge>
-                      </TableCell>
-
-                      {/* Accessibility */}
-                      <TableCell>
-                        <span className="inline-flex items-center text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                          {getAccessibilityIcon(user.accessibility)}
-                          {user.accessibility || (isDefaultAdmin ? 'Full Access' : 'POS Only')}
-                        </span>
-                      </TableCell>
-
-                      {/* Actions */}
-                      <TableCell className="text-right pr-4">
-                        {isDefaultAdmin ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled
-                            title="Admin default tidak dapat dihapus"
-                            className="opacity-30 cursor-not-allowed"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteTarget(user)}
-                            title={`Hapus user ${user.name || user.username}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+              );
+            })}
+            {users.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={isAdmin ? 4 : 3} className="text-center text-muted-foreground py-8">
+                  Belum ada pengguna
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {/* Add User Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) resetAddForm(); }}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-primary" />
-              Tambah User Baru
-            </DialogTitle>
-            <DialogDescription>
-              Isi data lengkap untuk menambahkan pengguna baru ke sistem.
-            </DialogDescription>
+            <DialogTitle>Tambah Pengguna</DialogTitle>
+            <DialogDescription>Buat akun pengguna baru dengan role dan izin akses.</DialogDescription>
           </DialogHeader>
-
           <div className="space-y-4 py-2">
-            {/* Photo Upload */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="relative group cursor-pointer" onClick={() => photoInputRef.current?.click()}>
-                <Avatar className="w-24 h-24 ring-4 ring-border">
-                  <AvatarImage src={newPhoto} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-3xl font-bold">
-                    {newName ? getInitials(newName) : '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="w-6 h-6 text-white" />
-                  <span className="text-white text-xs mt-1">Upload</span>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => photoInputRef.current?.click()}
-                className="gap-2"
-              >
-                <Upload className="w-4 h-4" />
-                {newPhoto ? 'Ganti Foto' : 'Upload Foto'}
-              </Button>
-              <input
-                ref={photoInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleNewPhotoUpload}
-              />
-            </div>
-
-            {/* Name */}
             <div className="space-y-1.5">
-              <Label htmlFor="new-name">
-                Nama Lengkap <span className="text-destructive">*</span>
-              </Label>
+              <Label>Nama Lengkap</Label>
               <Input
-                id="new-name"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
+                value={addForm.name}
+                onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="Masukkan nama lengkap"
               />
             </div>
-
-            {/* Username */}
             <div className="space-y-1.5">
-              <Label htmlFor="new-username">
-                Username <span className="text-destructive">*</span>
-              </Label>
+              <Label>Username</Label>
               <Input
-                id="new-username"
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
+                value={addForm.username}
+                onChange={e => setAddForm(f => ({ ...f, username: e.target.value }))}
                 placeholder="Masukkan username"
               />
             </div>
-
-            {/* Password */}
             <div className="space-y-1.5">
-              <Label htmlFor="new-password">
-                Password <span className="text-destructive">*</span>
-              </Label>
-              <div className="relative">
-                <Input
-                  id="new-password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Masukkan password"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowPassword((v) => !v)}
-                  tabIndex={-1}
-                >
-                  <Eye className="w-4 h-4" />
-                </button>
-              </div>
+              <Label>Password</Label>
+              <Input
+                type="password"
+                value={addForm.password}
+                onChange={e => setAddForm(f => ({ ...f, password: e.target.value }))}
+                placeholder="Masukkan password"
+              />
             </div>
-
-            {/* Role */}
             <div className="space-y-1.5">
-              <Label>
-                Role <span className="text-destructive">*</span>
-              </Label>
-              <Select value={newRole} onValueChange={(v) => setNewRole(v as UserRole)}>
+              <Label>Role</Label>
+              <Select value={addForm.userRole} onValueChange={v => handleAddRoleChange(v as UserRole)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih role" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLE_OPTIONS.map((r) => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
-                  ))}
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="User">User</SelectItem>
+                  <SelectItem value="Kasir">Kasir</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Accessibility */}
             <div className="space-y-1.5">
-              <Label>
-                Aksesibilitas <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={newAccessibility}
-                onValueChange={(v) => setNewAccessibility(v as UserAccessibility)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih aksesibilitas" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ACCESSIBILITY_OPTIONS.map((a) => (
-                    <SelectItem key={a} value={a}>{a}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                {newAccessibility === 'Full Access' && 'Akses penuh ke semua fitur sistem'}
-                {newAccessibility === 'POS Only' && 'Hanya dapat mengakses fitur kasir/POS'}
-                {newAccessibility === 'Reports Only' && 'Hanya dapat melihat laporan'}
-              </p>
+              <Label>Izin Akses</Label>
+              <p className="text-xs text-muted-foreground">Pilih role untuk mengisi izin default, atau sesuaikan secara manual.</p>
+              <PermissionsChecklist
+                permissions={addForm.permissions}
+                onChange={perms => setAddForm(f => ({ ...f, permissions: perms }))}
+              />
             </div>
           </div>
-
-          <DialogFooter className="gap-2">
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>Batal</Button>
             <Button
-              variant="outline"
-              onClick={() => { setShowAddDialog(false); resetAddForm(); }}
+              onClick={handleAddSave}
+              disabled={!addForm.name.trim() || !addForm.username.trim() || !addForm.password.trim()}
             >
-              Batal
+              Simpan
             </Button>
-            <Button onClick={handleAddUser} disabled={adding} className="gap-2">
-              {adding ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <UserPlus className="w-4 h-4" />
-                  Simpan User
-                </>
-              )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog (full) */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Pengguna</DialogTitle>
+            <DialogDescription>Ubah data akun pengguna.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Nama Lengkap</Label>
+              <Input
+                value={editForm.name}
+                onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Masukkan nama lengkap"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Username</Label>
+              <Input
+                value={editForm.username}
+                onChange={e => setEditForm(f => ({ ...f, username: e.target.value }))}
+                placeholder="Masukkan username"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Password</Label>
+              <Input
+                type="password"
+                value={editForm.password}
+                onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))}
+                placeholder="Masukkan password baru"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Role</Label>
+              <Select value={editForm.userRole} onValueChange={v => handleEditRoleChange(v as UserRole)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="User">User</SelectItem>
+                  <SelectItem value="Kasir">Kasir</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Izin Akses</Label>
+              <PermissionsChecklist
+                permissions={editForm.permissions}
+                onChange={perms => setEditForm(f => ({ ...f, permissions: perms }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Batal</Button>
+            <Button
+              onClick={handleEditSave}
+              disabled={!editForm.name.trim() || !editForm.username.trim()}
+            >
+              Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Authorization Dialog (role + permissions only) */}
+      <Dialog open={authEditOpen} onOpenChange={setAuthEditOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              Edit Otorisasi — {authEditTarget?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Ubah role dan izin akses pengguna ini.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Role</Label>
+              <Select value={authEditForm.userRole} onValueChange={v => handleAuthEditRoleChange(v as UserRole)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="User">User</SelectItem>
+                  <SelectItem value="Kasir">Kasir</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Izin Akses</Label>
+              <p className="text-xs text-muted-foreground">Pilih role untuk mengisi izin default, atau sesuaikan secara manual.</p>
+              <PermissionsChecklist
+                permissions={authEditForm.permissions}
+                onChange={perms => setAuthEditForm(f => ({ ...f, permissions: perms }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAuthEditOpen(false)}>Batal</Button>
+            <Button onClick={handleAuthEditSave}>
+              Simpan Otorisasi
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Trash2 className="w-5 h-5 text-destructive" />
-              Hapus Pengguna
-            </AlertDialogTitle>
+            <AlertDialogTitle>Hapus Pengguna</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus pengguna{' '}
-              <strong>"{deleteTarget?.name || deleteTarget?.username}"</strong>?
-              Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus pengguna <strong>{deleteTarget?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Batal</AlertDialogCancel>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleConfirmDelete}
+              onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Ya, Hapus
+              Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

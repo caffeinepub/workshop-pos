@@ -1,114 +1,40 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "User Management Page with Add/Delete, Roles, Accessibility, Password, and Profile Photo",
+  "title": "Add user edit menu for authorization and fix add-product authorization bug",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Create a User Management page accessible from main navigation, displaying a table of all users with profile photo, name, role, and accessibility level",
+      "summary": "Add Edit button to each user row in UserDataPage that opens a dialog for editing role and permissions",
       "acceptanceCriteria": [
-        "A 'Users' link appears in the main navigation (MainNav) that routes to the User Management page.",
-        "The page renders a table listing all users with columns: Avatar/Photo, Name, Role, Accessibility.",
-        "Each row shows the user's profile photo or a default avatar placeholder if none is uploaded."
+        "Each user row in UserDataPage displays an Edit button or menu option",
+        "Clicking Edit opens a modal/dialog pre-filled with the user's current role and permissions",
+        "Admin can change the user's role (Admin, User, Kasir) and update their permissions checklist",
+        "Saving the edit dialog updates the user's authorization data via useAuth",
+        "Changes are reflected immediately in the user list without a page reload"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/layout/MainNav.tsx",
-          "operation": "modify",
-          "description": "Add a 'Users' navigation link to both desktop and mobile navigation sections that routes to /users. Place it in a logical position alongside existing routes (POS, Products, History, etc.)."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Register a new route for /users that renders the UserDataPage component. Add the route definition to the TanStack Router configuration alongside existing routes."
-        },
-        {
           "path": "frontend/src/pages/UserDataPage.tsx",
           "operation": "modify",
-          "description": "Replace the existing UserDataPage implementation with a comprehensive user management interface. Display all users from the useAuth hook in a table with columns for Avatar (circular profile photo or default placeholder), Name, Role, and Accessibility. Use shadcn/ui Table components for consistent styling. Each avatar should be rendered as a circular image (w-10 h-10 rounded-full) displaying the base64 photo from localStorage or a default placeholder with user initials."
+          "description": "Add an Edit button to each user row in the table that opens an edit dialog. Create a new edit dialog (similar to the add dialog) that pre-fills the current user's role and permissions using PermissionsChecklist component. Wire the edit form to call updateUser from useAuth hook with the modified role and permissions. Ensure the dialog is separate from the add-user dialog and handles the pre-population of existing user data correctly."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Implement Add User functionality with a dialog containing fields for Full Name, Role, Accessibility, Password, and Profile Photo upload, persisting to localStorage",
+      "summary": "Fix authorization check in ProductsPage so Admin users can open the add-product dialog",
       "acceptanceCriteria": [
-        "An 'Add User' button opens a modal dialog.",
-        "The form contains: Name (text input), Role (select: Admin / Cashier / Technician), Accessibility (select: Full Access / POS Only / Reports Only), Password (password input), and Profile Photo (file upload accepting image files).",
-        "Submitting the form with all required fields saves the user and shows them in the list.",
-        "Profile photo is stored as a base64 data URL in localStorage alongside the user record.",
-        "Form validation prevents saving if Name or Password is empty."
+        "When logged in as Admin, clicking 'Add Product' on the Products page opens the add-product dialog without any authorization error",
+        "The authorization guard on the add-product action correctly reads the current user's role from the auth context",
+        "Admin and User roles can add products; Kasir role cannot",
+        "No false 'no authorization' error is shown to Admin users"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/UserDataPage.tsx",
+          "path": "frontend/src/pages/ProductsPage.tsx",
           "operation": "modify",
-          "description": "Add an 'Add User' button above the user table that opens a Dialog modal. Inside the Dialog, render a form with controlled inputs for: Name (Input), Role (Select with options: Admin, Cashier, Technician), Accessibility (Select with options: Full Access, POS Only, Reports Only), Password (Input type='password'), and Profile Photo (Input type='file' accept='image/*'). Display a circular preview of the selected photo before saving. On form submit, validate that Name and Password are non-empty, convert the uploaded image to base64 using FileReader, call the addUser function from useAuth with all fields including the base64 photo, close the dialog, and refresh the user list. Use shadcn/ui Dialog, Input, Select, and Button components."
-        },
-        {
-          "path": "frontend/src/hooks/useAuth.ts",
-          "operation": "modify",
-          "description": "Extend the User type to include role (Admin | Cashier | Technician), accessibility (Full Access | POS Only | Reports Only), and photo (optional base64 string). Update the addUser function to accept and persist these new fields to localStorage. Ensure the default admin user is seeded with role='Admin', accessibility='Full Access', and no photo. Update the users array structure in localStorage to include these fields for all users."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Implement Delete User functionality with confirmation dialog, preventing deletion of the default admin user",
-      "acceptanceCriteria": [
-        "Each user row displays a delete icon/button.",
-        "Clicking delete opens a confirmation dialog ('Are you sure you want to delete this user?').",
-        "Confirming removes the user from the list and localStorage.",
-        "The default admin user row's delete button is disabled or hidden."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/UserDataPage.tsx",
-          "operation": "modify",
-          "description": "Add a delete button (Trash icon) to each user row in the table. On click, open a shadcn/ui AlertDialog with the message 'Are you sure you want to delete this user?' and Confirm/Cancel actions. If confirmed, call the deleteUser function from useAuth with the user's username. For the default admin user (username='admin'), either hide the delete button or render it disabled with a tooltip explaining it cannot be deleted. Use shadcn/ui AlertDialog and Button components."
-        },
-        {
-          "path": "frontend/src/hooks/useAuth.ts",
-          "operation": "modify",
-          "description": "Ensure the deleteUser function prevents deletion of the user with username='admin'. Add a guard that returns early or throws an error if attempting to delete the admin user. After successful deletion, update the users array in localStorage and trigger a re-render."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Seed a default admin user with username='admin', password='admin123', Role='Admin', Accessibility='Full Access', ensuring it always exists and cannot be removed",
-      "acceptanceCriteria": [
-        "On first load (empty localStorage), the user list contains exactly one user: admin / admin123 / Admin role / Full Access.",
-        "The admin user is always re-seeded if not present in localStorage.",
-        "Logging in with username 'admin' and password 'admin123' succeeds."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useAuth.ts",
-          "operation": "modify",
-          "description": "Update the default user seeding logic to create an admin user with username='admin', password='admin123', role='Admin', accessibility='Full Access', and no profile photo. On hook initialization, check if the admin user exists in localStorage; if not, seed it. Ensure the login function correctly authenticates this default admin user. The admin user must be marked as non-deletable (e.g., by checking username === 'admin' in deleteUser)."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Add profile photo upload control with inline preview to Add/Edit User modal, storing photos as base64 in localStorage and displaying as circular avatars",
-      "acceptanceCriteria": [
-        "The Add User modal shows an image file picker with a preview area.",
-        "After selecting an image, a circular preview is shown before saving.",
-        "Saved users display their photo as a circular avatar in the table; users without a photo show a default avatar/initials placeholder.",
-        "Clicking the avatar area in the edit dialog allows replacing the photo."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/UserDataPage.tsx",
-          "operation": "modify",
-          "description": "In the Add User dialog, add a file input for profile photo upload (accept='image/*'). When a file is selected, use FileReader to convert it to a base64 data URL and store it in component state. Display a circular preview (w-24 h-24 rounded-full) of the selected image below the file input. In the user table, render each user's photo as a circular avatar (w-10 h-10 rounded-full object-cover). If no photo exists, display a default placeholder showing the user's initials in a colored circle. Use shadcn/ui Avatar component for consistent avatar rendering."
-        },
-        {
-          "path": "frontend/src/hooks/useAuth.ts",
-          "operation": "modify",
-          "description": "Ensure the User type includes an optional photo field (base64 string). Update addUser and any update functions to persist the photo field to localStorage. When loading users from localStorage, ensure the photo field is correctly restored."
+          "description": "Investigate and fix the authorization check that gates the add-product dialog. Review the canEdit logic and ensure it correctly reads the current user's role from useAuth or useUserRole hooks. Verify that the check allows Admin and User roles to proceed with adding products while blocking Kasir role. Remove or correct any faulty permission check that causes the authorization error for Admin users. Ensure the add-product button and dialog opening mechanism properly respect the corrected role-based access control."
         }
       ]
     }

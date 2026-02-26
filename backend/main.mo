@@ -9,11 +9,13 @@ import Principal "mo:core/Principal";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
+
 // Specify migration function and use mixin authorization pattern
 
 actor {
   // Access control state
   let accessControlState = AccessControl.initState();
+
   // Include the authorization mixin!
   include MixinAuthorization(accessControlState);
 
@@ -44,19 +46,22 @@ actor {
   };
 
   // Inventory Data Model
-  type InventoryItem = {
+  public type InventoryType = { #barang; #jasa };
+
+  public type InventoryItem = {
     itemCode : Text;
     itemName : Text;
-    quantity : Nat;
+    quantity : ?Nat; // Optional for jasa
+    type_ : InventoryType;
     sellPrice : Nat;
     buyPrice : Nat;
-    stock : Nat;
+    stock : ?Nat;
     minStock : Nat;
     maxStock : Nat;
   };
 
   // Service Record Data Model
-  type ServiceRecord = {
+  public type ServiceRecord = {
     id : Nat;
     customerName : Text;
     vehicleBrand : Text;
@@ -68,13 +73,13 @@ actor {
     repairAction : ?Text;
   };
 
-  type Status = {
+  public type Status = {
     #masuk;
     #selesai;
   };
 
   // Customer Data Model
-  type CustomerRecord = {
+  public type CustomerRecord = {
     name : Text;
     phone : Text;
     transactionCount : Nat;
@@ -84,19 +89,19 @@ actor {
     vehicleHistory : [VehicleHistory];
   };
 
-  type DiscountType = {
+  public type DiscountType = {
     #goods;
     #services;
   };
 
-  type VehicleHistory = {
+  public type VehicleHistory = {
     brand : Text;
     model : Text;
     plate : Text;
   };
 
   // Transaction Data Model
-  type Transaction = {
+  public type Transaction = {
     id : Nat;
     customerName : Text;
     customerPhone : Text;
@@ -105,7 +110,7 @@ actor {
     buyPrices : [(Text, Nat)];
   };
 
-  type TransactionItem = {
+  public type TransactionItem = {
     itemCode : Text;
     quantity : Nat;
     sellPrice : Nat;
@@ -121,12 +126,26 @@ actor {
   var nextTransactionId = 0;
 
   // Inventory Management
-  // Adding or updating inventory items requires at least user-level access
-  public shared ({ caller }) func addOrUpdateInventoryItem(item : InventoryItem) : async () {
+  // Adding inventory items requires at least user-level access
+  public shared ({ caller }) func addInventoryItem(item : InventoryItem) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can add or update inventory items");
+      Runtime.trap("Unauthorized: Only users can add inventory items");
     };
-    inventory.add(item.itemCode, item);
+    switch (inventory.get(item.itemCode)) {
+      case (null) { inventory.add(item.itemCode, item) };
+      case (?_) { Runtime.trap("Item code already exists. Use updateInventoryItem instead! ") };
+    };
+  };
+
+  // Updating inventory items requires at least user-level access
+  public shared ({ caller }) func updateInventoryItem(item : InventoryItem) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update inventory items");
+    };
+    switch (inventory.get(item.itemCode)) {
+      case (?_) { inventory.add(item.itemCode, item) };
+      case (null) { Runtime.trap("Item code does not exist yet. Use addInventoryItem instead!") };
+    };
   };
 
   // Deleting inventory items is an admin-only operation
@@ -258,6 +277,36 @@ actor {
     let newTransaction = { transaction with id };
     transactions.add(id, newTransaction);
     nextTransactionId += 1;
+
+    // Only reduce stock for barang (goods) items
+    for (item in transaction.items.values()) {
+      switch (inventory.get(item.itemCode)) {
+        case (null) { Runtime.trap("Item not found in inventory: " # item.itemCode) };
+        case (?invItem) {
+          switch (invItem.type_) {
+            case (#barang) {
+              // Only reduce stock if qty is provided and non-zero
+              switch (invItem.quantity) {
+                case (null) { Runtime.trap("Item quantity must be specified for goods: " # item.itemCode) };
+                case (?qty) {
+                  if (qty == 0) { Runtime.trap("Cannot sell zero quantity of goods: " # item.itemCode) };
+                  let newStock = switch (invItem.stock) {
+                    case (null) { Runtime.trap("Stock count must be specified for goods: " # item.itemCode) };
+                    case (?stock) {
+                      if (stock < item.quantity) { Runtime.trap("Not enough stock for item: " # item.itemCode) } else {
+                        stock - item.quantity;
+                      };
+                    };
+                  };
+                  inventory.add(item.itemCode, { invItem with stock = ?newStock });
+                };
+              };
+            };
+            case (#jasa) {};
+          };
+        };
+      };
+    };
     id;
   };
 

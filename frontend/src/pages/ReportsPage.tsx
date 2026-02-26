@@ -1,7 +1,7 @@
 // Reports page with profit/loss report, date range filter, and print capability
 import { useState } from 'react';
 import { useGetAllTransactions } from '../hooks/useTransaction';
-import { useGetAllInventoryItems } from '../hooks/useInventory';
+import { useGetAllInventoryItems } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,17 +29,11 @@ export function ReportsPage() {
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const [startDate, setStartDate] = useState(firstOfMonth.toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(today.toISOString().split('T')[0]);
-  const [filtered, setFiltered] = useState(false);
 
   const { data: transactions = [], isLoading: txLoading } = useGetAllTransactions();
   const { data: inventoryItems = [] } = useGetAllInventoryItems();
 
-  // Client-side filtering and calculation
-  const start = new Date(startDate + 'T00:00:00');
-  const end = new Date(endDate + 'T23:59:59');
-
   // Since transactions don't have timestamps in the backend, we show all transactions
-  // and note the date range is for display purposes
   const reportTransactions = transactions;
 
   const totalRevenue = reportTransactions.reduce((sum, tx) => sum + Number(tx.totalAmount), 0);
@@ -262,3 +256,5 @@ export function ReportsPage() {
     </div>
   );
 }
+
+export default ReportsPage;

@@ -12,10 +12,10 @@ import { Toaster } from '@/components/ui/sonner';
 
 import LoginPage from './pages/LoginPage';
 import { PosPage } from './pages/PosPage';
-import { ProductsPage } from './pages/ProductsPage';
+import ProductsPage from './pages/ProductsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
-import { UserDataPage } from './pages/UserDataPage';
+import UserDataPage from './pages/UserDataPage';
 import { MainNav } from './components/layout/MainNav';
 
 const queryClient = new QueryClient({

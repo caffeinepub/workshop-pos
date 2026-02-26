@@ -9,13 +9,14 @@ export interface None {
 export type Option<T> = Some<T> | None;
 export interface InventoryItem {
     maxStock: bigint;
+    type: InventoryType;
     sellPrice: bigint;
     minStock: bigint;
-    stock: bigint;
+    stock?: bigint;
     itemCode: string;
     buyPrice: bigint;
     itemName: string;
-    quantity: bigint;
+    quantity?: bigint;
 }
 export interface CustomerRecord {
     discountAmount: bigint;
@@ -64,6 +65,10 @@ export enum DiscountType {
     goods = "goods",
     services = "services"
 }
+export enum InventoryType {
+    jasa = "jasa",
+    barang = "barang"
+}
 export enum Status {
     masuk = "masuk",
     selesai = "selesai"
@@ -74,7 +79,7 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
-    addOrUpdateInventoryItem(item: InventoryItem): Promise<void>;
+    addInventoryItem(item: InventoryItem): Promise<void>;
     addServiceRecord(record: ServiceRecord): Promise<bigint>;
     addTransaction(transaction: Transaction): Promise<bigint>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
@@ -103,6 +108,7 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    updateInventoryItem(item: InventoryItem): Promise<void>;
     updateServiceStatus(id: bigint, status: Status, repairAction: string | null): Promise<void>;
     upsertCustomerRecord(record: CustomerRecord): Promise<void>;
 }

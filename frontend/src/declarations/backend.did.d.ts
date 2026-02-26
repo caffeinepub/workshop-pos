@@ -23,14 +23,17 @@ export type DiscountType = { 'goods' : null } |
   { 'services' : null };
 export interface InventoryItem {
   'maxStock' : bigint,
+  'type' : InventoryType,
   'sellPrice' : bigint,
   'minStock' : bigint,
-  'stock' : bigint,
+  'stock' : [] | [bigint],
   'itemCode' : string,
   'buyPrice' : bigint,
   'itemName' : string,
-  'quantity' : bigint,
+  'quantity' : [] | [bigint],
 }
+export type InventoryType = { 'jasa' : null } |
+  { 'barang' : null };
 export interface ServiceRecord {
   'id' : bigint,
   'customerName' : string,
@@ -69,7 +72,7 @@ export interface VehicleHistory {
 }
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'addOrUpdateInventoryItem' : ActorMethod<[InventoryItem], undefined>,
+  'addInventoryItem' : ActorMethod<[InventoryItem], undefined>,
   'addServiceRecord' : ActorMethod<[ServiceRecord], bigint>,
   'addTransaction' : ActorMethod<[Transaction], bigint>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
@@ -101,6 +104,7 @@ export interface _SERVICE {
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'updateInventoryItem' : ActorMethod<[InventoryItem], undefined>,
   'updateServiceStatus' : ActorMethod<
     [bigint, Status, [] | [string]],
     undefined

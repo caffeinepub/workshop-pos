@@ -8,17 +8,16 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const result = await login(username, password);
-      if (!result.success) {
-        setError(result.error || 'Login gagal');
+      const success = login(username.trim(), password.trim());
+      if (!success) {
+        setError('Username atau password salah');
       }
-      // On success, App.tsx re-renders and shows the authenticated layout
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan yang tidak terduga');
     } finally {
       setLoading(false);
@@ -120,7 +119,9 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-4 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground text-center">
-          <span className="font-medium">Demo:</span> username <code className="bg-muted px-1 rounded">admin</code> / password <code className="bg-muted px-1 rounded">admin123</code>
+          <span className="font-medium">Demo:</span> username{' '}
+          <code className="bg-muted px-1 rounded">admin</code> / password{' '}
+          <code className="bg-muted px-1 rounded">admin123</code>
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-4">

@@ -1,6 +1,6 @@
 // Transaction/checkout page with customer autocomplete, cart management, and receipt printing via window.print()
 import { useState, useEffect, useRef } from 'react';
-import { useGetAllInventoryItems } from '../hooks/useInventory';
+import { useGetAllInventoryItems } from '../hooks/useQueries';
 import { useAddTransaction } from '../hooks/useTransaction';
 import { useGetAllCustomers, useUpsertCustomerRecord } from '../hooks/useCustomer';
 import { useShopSettings } from '../hooks/useShopSettings';
@@ -14,7 +14,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Plus, Trash2, Printer, Loader2, User } from 'lucide-react';
 import { toast } from 'sonner';
 

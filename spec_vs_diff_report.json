@@ -1,55 +1,25 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T02:36:33.273Z",
-  "summary": "The diff implements most requirements: UserDataPage is created with a user table, Add User dialog, Delete User with confirmation, default admin seeding in useAuth, and profile photo upload/preview. The navigation route and useAuth hook are updated accordingly. However, some acceptance criteria have gaps, particularly around the role dropdown options (spec says 'Cashier/Technician' but implementation uses 'Kasir/Teknisi'), and the 'edit dialog avatar replacement' feature appears to be implemented as an inline table hover action rather than an edit dialog. Overall coverage is high.",
-  "missing_requirements": [
-    {
-      "requirement": "Role dropdown options should include 'Cashier' and 'Technician' (English labels as specified: Admin, Cashier, Technician)",
-      "reason": "The spec AC for REQ-2 states Role select options: 'Admin / Cashier / Technician'. The implementation uses 'Kasir' and 'Teknisi' (Indonesian labels) instead of 'Cashier' and 'Technician'.",
-      "evidence": [
-        "frontend/src/pages/UserDataPage.tsx",
-        "frontend/src/hooks/useAuth.ts"
-      ]
-    },
-    {
-      "requirement": "REQ-5 AC: Clicking the avatar area in the edit dialog allows replacing the photo",
-      "reason": "The diff summary describes a hover-to-replace camera overlay on the table row avatar, not an 'edit dialog' flow. There is no evidence of a separate edit dialog for replacing a photo; the replacement appears to be inline in the table rather than in a dedicated edit dialog.",
-      "evidence": [
-        "frontend/src/pages/UserDataPage.tsx",
-        "frontend-file-summaries.txt"
-      ]
-    }
-  ],
+  "generatedAt": "2026-02-26T04:57:08.687Z",
+  "summary": "The diff implements both REQ-1 (Edit button/menu for user authorization on UserDataPage) and REQ-2 (fix authorization check on ProductsPage). REQ-1 is addressed via an edit dialog in UserDataPage.tsx with role/permissions pre-fill using useAuth. REQ-2 is addressed in ProductsPage.tsx by reading currentUser?.userRole from useAuth for the canEdit guard. Both requirements appear to be substantially implemented based on the diff evidence.",
+  "missing_requirements": [],
   "hallucinated_features": [
     {
-      "description": "Username field added to the Add User form",
-      "reason": "The build request REQ-2 specifies form fields: Full Name, Role, Accessibility, Password, and Profile Photo. It does not mention a separate 'Username' field distinct from Full Name. The implementation adds a 'newUsername' field and requires it for validation.",
-      "evidence": [
-        "frontend/src/pages/UserDataPage.tsx"
-      ]
-    },
-    {
-      "description": "Show/hide password toggle in the Add User form",
-      "reason": "The build request does not mention a password visibility toggle. The implementation includes a 'showPassword' state and toggle button.",
-      "evidence": [
-        "frontend/src/pages/UserDataPage.tsx"
-      ]
-    },
-    {
-      "description": "Inline avatar replacement via hover camera overlay on table rows outside of any dialog",
-      "reason": "The spec only mentions replacing the photo by clicking the avatar area in an edit dialog (REQ-5 AC). The implementation adds a hover-based camera overlay directly on table row avatars, which goes beyond what was specified.",
+      "description": "A separate 'Otorisasi' (Authorization) action button in addition to the Edit and Delete buttons per user row (three action buttons per row total)",
+      "reason": "The build request only asked for an Edit button/menu action to modify role and permissions. The file summary for UserDataPage.tsx explicitly mentions 'three action buttons per row (Otorisasi, Edit, Hapus)', which is a separate authorization-only button not requested in the spec.",
       "evidence": [
         "frontend/src/pages/UserDataPage.tsx",
         "frontend-file-summaries.txt"
       ]
     }
   ],
-  "confidence": 0.78,
+  "confidence": 0.72,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/hooks/useAuth.ts",
+    "frontend/src/hooks/useInventory.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/ProductsPage.tsx",
     "frontend/src/pages/UserDataPage.tsx",
     "project_state.json"
   ]

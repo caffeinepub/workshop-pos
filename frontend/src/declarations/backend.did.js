@@ -8,15 +8,20 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const InventoryType = IDL.Variant({
+  'jasa' : IDL.Null,
+  'barang' : IDL.Null,
+});
 export const InventoryItem = IDL.Record({
   'maxStock' : IDL.Nat,
+  'type' : InventoryType,
   'sellPrice' : IDL.Nat,
   'minStock' : IDL.Nat,
-  'stock' : IDL.Nat,
+  'stock' : IDL.Opt(IDL.Nat),
   'itemCode' : IDL.Text,
   'buyPrice' : IDL.Nat,
   'itemName' : IDL.Text,
-  'quantity' : IDL.Nat,
+  'quantity' : IDL.Opt(IDL.Nat),
 });
 export const Status = IDL.Variant({ 'masuk' : IDL.Null, 'selesai' : IDL.Null });
 export const ServiceRecord = IDL.Record({
@@ -74,7 +79,7 @@ export const UserProfile = IDL.Record({
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'addOrUpdateInventoryItem' : IDL.Func([InventoryItem], [], []),
+  'addInventoryItem' : IDL.Func([InventoryItem], [], []),
   'addServiceRecord' : IDL.Func([ServiceRecord], [IDL.Nat], []),
   'addTransaction' : IDL.Func([Transaction], [IDL.Nat], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
@@ -125,6 +130,7 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'updateInventoryItem' : IDL.Func([InventoryItem], [], []),
   'updateServiceStatus' : IDL.Func(
       [IDL.Nat, Status, IDL.Opt(IDL.Text)],
       [],
@@ -136,15 +142,17 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const InventoryType = IDL.Variant({ 'jasa' : IDL.Null, 'barang' : IDL.Null });
   const InventoryItem = IDL.Record({
     'maxStock' : IDL.Nat,
+    'type' : InventoryType,
     'sellPrice' : IDL.Nat,
     'minStock' : IDL.Nat,
-    'stock' : IDL.Nat,
+    'stock' : IDL.Opt(IDL.Nat),
     'itemCode' : IDL.Text,
     'buyPrice' : IDL.Nat,
     'itemName' : IDL.Text,
-    'quantity' : IDL.Nat,
+    'quantity' : IDL.Opt(IDL.Nat),
   });
   const Status = IDL.Variant({ 'masuk' : IDL.Null, 'selesai' : IDL.Null });
   const ServiceRecord = IDL.Record({
@@ -202,7 +210,7 @@ export const idlFactory = ({ IDL }) => {
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'addOrUpdateInventoryItem' : IDL.Func([InventoryItem], [], []),
+    'addInventoryItem' : IDL.Func([InventoryItem], [], []),
     'addServiceRecord' : IDL.Func([ServiceRecord], [IDL.Nat], []),
     'addTransaction' : IDL.Func([Transaction], [IDL.Nat], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
@@ -257,6 +265,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'updateInventoryItem' : IDL.Func([InventoryItem], [], []),
     'updateServiceStatus' : IDL.Func(
         [IDL.Nat, Status, IDL.Opt(IDL.Text)],
         [],

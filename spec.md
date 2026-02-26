@@ -1,16 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Add a User Management page to the Workshop POS app where admins can view, add, and delete users with roles, accessibility levels, passwords, and profile photos.
+**Goal:** Add an edit menu for user authorization on the User Data page and fix the Add Product authorization bug on the Products page.
 
 **Planned changes:**
-- Add a "Users" link in the main navigation routing to a new `UserDataPage`
-- Display a table of all users with columns: Avatar, Name, Role, and Accessibility
-- Add an "Add User" button that opens a modal with fields: Name, Role (Admin/Cashier/Technician), Accessibility (Full Access/POS Only/Reports Only), Password, and Profile Photo upload with inline preview
-- Store user data (including profile photos as base64) in localStorage
-- Add a delete button per user row with a confirmation dialog before removal
-- Seed a default admin user (username: `admin`, password: `admin123`, Role: Admin, Accessibility: Full Access) that cannot be deleted
-- Display profile photos as circular avatars; show initials placeholder if no photo is set
-- Validate that Name and Password are not empty before saving a new user
+- Add an Edit button/menu action to each user row in UserDataPage that opens a modal dialog pre-filled with the user's current role and permissions
+- The edit dialog allows an Admin to change the user's role (Admin, User, Kasir) and update their permissions checklist using the existing PermissionsChecklist component
+- Saving the dialog updates the user's authorization data via the existing useAuth hook and reflects changes immediately in the user list
+- Fix the authorization check in ProductsPage so that clicking "Add Product" correctly recognizes an Admin user as authorized and opens the add-product dialog without errors
 
-**User-visible outcome:** Admins can navigate to a User Management page to view all users, add new users with roles, accessibility, passwords, and profile photos, and delete users (except the default admin).
+**User-visible outcome:** Admins can now edit any user's role and permissions directly from the User Data page, and the Add Product button on the Products page works correctly for Admin users without showing a false authorization error.

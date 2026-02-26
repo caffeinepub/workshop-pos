@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { InventoryItem, Transaction, ServiceRecord, CustomerRecord } from '../backend';
+import { InventoryItem, CustomerRecord, Transaction } from '../backend';
 
-// Inventory
+// --- Standalone named exports (used by InventoryPage, ProductsPage, etc.) ---
+
 export function useGetAllInventoryItems() {
   const { actor, isFetching } = useActor();
   return useQuery<InventoryItem[]>({
@@ -20,20 +21,6 @@ export function useGetAllInventoryItems() {
   });
 }
 
-export function useAddOrUpdateInventoryItem() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (item: InventoryItem) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.addOrUpdateInventoryItem(item);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventoryItems'] });
-    },
-  });
-}
-
 export function useDeleteInventoryItem() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -48,7 +35,51 @@ export function useDeleteInventoryItem() {
   });
 }
 
-// Transactions
+export function useGetAllCustomers() {
+  const { actor, isFetching } = useActor();
+  return useQuery<CustomerRecord[]>({
+    queryKey: ['customers'],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        return await actor.getAllCustomers();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
+  });
+}
+
+export function useUpsertCustomer() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (record: CustomerRecord) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.upsertCustomerRecord(record);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+  });
+}
+
+export function useDeleteCustomer() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (phone: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.deleteCustomerRecord(phone);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+  });
+}
+
 export function useGetAllTransactions() {
   const { actor, isFetching } = useActor();
   return useQuery<Transaction[]>({
@@ -76,14 +107,45 @@ export function useAddTransaction() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['inventoryItems'] });
     },
   });
 }
 
-// Service Records
+export function useDeleteTransaction() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.deleteTransaction(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    },
+  });
+}
+
+export function useGetProfitLossReport() {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ['profitLossReport'],
+    queryFn: async () => {
+      if (!actor) return null;
+      try {
+        return await actor.getProfitLossReport(BigInt(0), BigInt(Date.now()));
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
+  });
+}
+
 export function useGetAllServiceRecords() {
   const { actor, isFetching } = useActor();
-  return useQuery<ServiceRecord[]>({
+  return useQuery({
     queryKey: ['serviceRecords'],
     queryFn: async () => {
       if (!actor) return [];
@@ -102,7 +164,7 @@ export function useAddServiceRecord() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (record: ServiceRecord) => {
+    mutationFn: async (record: any) => {
       if (!actor) throw new Error('Actor not available');
       return actor.addServiceRecord(record);
     },
@@ -148,24 +210,6 @@ export function useDeleteServiceRecord() {
   });
 }
 
-// Customers
-export function useGetAllCustomers() {
-  const { actor, isFetching } = useActor();
-  return useQuery<CustomerRecord[]>({
-    queryKey: ['customers'],
-    queryFn: async () => {
-      if (!actor) return [];
-      try {
-        return await actor.getAllCustomers();
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!actor && !isFetching,
-    retry: false,
-  });
-}
-
 export function useUpsertCustomerRecord() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -191,23 +235,5 @@ export function useDeleteCustomerRecord() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
-  });
-}
-
-// Reports
-export function useGetProfitLossReport() {
-  const { actor, isFetching } = useActor();
-  return useQuery({
-    queryKey: ['profitLossReport'],
-    queryFn: async () => {
-      if (!actor) return null;
-      try {
-        return await actor.getProfitLossReport(BigInt(0), BigInt(Date.now()));
-      } catch {
-        return null;
-      }
-    },
-    enabled: !!actor && !isFetching,
-    retry: false,
   });
 }
