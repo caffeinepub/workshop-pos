@@ -1,40 +1,27 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add user edit menu for authorization and fix add-product authorization bug",
+  "title": "Fix admin role check blocking product addition",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add Edit button to each user row in UserDataPage that opens a dialog for editing role and permissions",
+      "summary": "Fix the admin role/permission check that incorrectly blocks logged-in admin users from adding new products in ProductsPage",
       "acceptanceCriteria": [
-        "Each user row in UserDataPage displays an Edit button or menu option",
-        "Clicking Edit opens a modal/dialog pre-filled with the user's current role and permissions",
-        "Admin can change the user's role (Admin, User, Kasir) and update their permissions checklist",
-        "Saving the edit dialog updates the user's authorization data via useAuth",
-        "Changes are reflected immediately in the user list without a page reload"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/UserDataPage.tsx",
-          "operation": "modify",
-          "description": "Add an Edit button to each user row in the table that opens an edit dialog. Create a new edit dialog (similar to the add dialog) that pre-fills the current user's role and permissions using PermissionsChecklist component. Wire the edit form to call updateUser from useAuth hook with the modified role and permissions. Ensure the dialog is separate from the add-user dialog and handles the pre-population of existing user data correctly."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Fix authorization check in ProductsPage so Admin users can open the add-product dialog",
-      "acceptanceCriteria": [
-        "When logged in as Admin, clicking 'Add Product' on the Products page opens the add-product dialog without any authorization error",
-        "The authorization guard on the add-product action correctly reads the current user's role from the auth context",
-        "Admin and User roles can add products; Kasir role cannot",
-        "No false 'no authorization' error is shown to Admin users"
+        "A user logged in as admin can click the 'Add New Product' button without seeing the 'only admin can add new products' error message.",
+        "The role check in ProductsPage.tsx correctly reads the admin role from useUserRole or useAuth and grants access.",
+        "The backend authorization check (if any) correctly identifies the caller as admin and allows the addInventoryItem or equivalent call to succeed.",
+        "Non-admin users (kasir/user roles) still see the appropriate restriction message."
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/ProductsPage.tsx",
           "operation": "modify",
-          "description": "Investigate and fix the authorization check that gates the add-product dialog. Review the canEdit logic and ensure it correctly reads the current user's role from useAuth or useUserRole hooks. Verify that the check allows Admin and User roles to proceed with adding products while blocking Kasir role. Remove or correct any faulty permission check that causes the authorization error for Admin users. Ensure the add-product button and dialog opening mechanism properly respect the corrected role-based access control."
+          "description": "Fix the admin role check logic that blocks product addition. Review the current role verification implementation (likely using useUserRole or useAuth hooks) and ensure it correctly identifies admin users. The check should use the authorization component's role system to verify admin status before showing the 'only admin can add new products' error. Verify the component's usage instructions before implementing. Ensure the role check properly awaits async role data and handles loading states."
+        },
+        {
+          "path": "frontend/src/hooks/useUserRole.ts",
+          "operation": "modify",
+          "description": "Review and fix the role detection logic to ensure it correctly fetches and returns the caller's role from the backend. Verify that isAdmin and other role convenience flags are computed correctly from the backend response. Ensure proper handling of loading states and that the hook returns accurate role information when the actor is available. Add error handling for cases where role fetching fails."
         }
       ]
     }

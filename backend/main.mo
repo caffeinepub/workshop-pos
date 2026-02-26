@@ -5,13 +5,13 @@ import Iter "mo:core/Iter";
 import Text "mo:core/Text";
 import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
+import Migration "migration";
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
-
-// Specify migration function and use mixin authorization pattern
-
+// Apply migration.
+(with migration = Migration.run)
 actor {
   // Access control state
   let accessControlState = AccessControl.initState();
@@ -126,10 +126,10 @@ actor {
   var nextTransactionId = 0;
 
   // Inventory Management
-  // Adding inventory items requires at least user-level access
+  // Adding inventory items requires admin-level access
   public shared ({ caller }) func addInventoryItem(item : InventoryItem) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can add inventory items");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can add inventory items");
     };
     switch (inventory.get(item.itemCode)) {
       case (null) { inventory.add(item.itemCode, item) };

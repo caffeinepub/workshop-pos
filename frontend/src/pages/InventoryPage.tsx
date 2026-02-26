@@ -146,8 +146,8 @@ export default function InventoryPage() {
         toast.success('Item added successfully');
       }
       setDialogOpen(false);
-    } catch (err: any) {
-      const msg = err?.message ?? String(err);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('Unauthorized') || msg.includes('authorized')) {
         toast.error('Authorization error: You do not have permission to perform this action.');
       } else if (msg.includes('already exists')) {
@@ -163,21 +163,22 @@ export default function InventoryPage() {
     try {
       await deleteMutation.mutateAsync(deleteTarget.itemCode);
       toast.success('Item deleted');
-    } catch (err: any) {
-      toast.error(`Delete failed: ${err?.message ?? err}`);
+    } catch (err: unknown) {
+      toast.error(`Delete failed: ${err instanceof Error ? err.message : String(err)}`);
     }
     setDeleteTarget(null);
   };
 
   const handleExport = () => {
     exportInventoryToCSV(items);
-    toast.success('Inventory exported to CSV');
+    toast.success('Inventory exported');
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      // importInventoryFromCSV now accepts a File and returns ImportResult
       const result = await importInventoryFromCSV(file);
       const parsedItems = result.items;
       let added = 0;
@@ -208,10 +209,10 @@ export default function InventoryPage() {
           failed++;
         }
       }
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['inventoryItems'] });
       toast.success(`Import complete: ${added} added, ${updated} updated${failed > 0 ? `, ${failed} failed` : ''}`);
-    } catch (err: any) {
-      toast.error(`Import failed: ${err?.message ?? err}`);
+    } catch (err: unknown) {
+      toast.error(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
     }
     e.target.value = '';
   };
@@ -236,7 +237,7 @@ export default function InventoryPage() {
                 <Upload className="w-4 h-4" />
                 Import
               </Button>
-              <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+              <input ref={fileInputRef} type="file" accept=".xlsx,.csv" className="hidden" onChange={handleImport} />
               <Button size="sm" onClick={openAdd} className="gap-2">
                 <Plus className="w-4 h-4" />
                 Add Item
@@ -286,37 +287,56 @@ export default function InventoryPage() {
                 </TableRow>
               ) : (
                 filtered.map((item) => {
+                  const isJasa = item.type === InventoryType.jasa;
                   const isLowStock =
-                    item.type === InventoryType.barang &&
+                    !isJasa &&
                     item.stock !== undefined &&
                     item.stock <= item.minStock;
                   return (
-                    <TableRow
-                      key={item.itemCode}
-                      className={isLowStock ? 'bg-destructive/5' : ''}
-                    >
+                    <TableRow key={item.itemCode} className={isLowStock ? 'bg-destructive/5' : ''}>
                       <TableCell className="font-mono text-xs">{item.itemCode}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           {isLowStock && <AlertTriangle className="w-3.5 h-3.5 text-destructive" />}
-                          {item.itemName}
+                          <span>{item.itemName}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={item.type === InventoryType.jasa ? 'secondary' : 'outline'} className="text-xs">
-                          {item.type === InventoryType.jasa ? 'Jasa' : 'Barang'}
+                        <Badge variant={isJasa ? 'secondary' : 'outline'}>
+                          {isJasa ? 'Jasa' : 'Barang'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">{item.quantity !== undefined ? String(item.quantity) : '-'}</TableCell>
-                      <TableCell className="text-right">Rp {Number(item.sellPrice).toLocaleString('id-ID')}</TableCell>
-                      <TableCell className="text-right">Rp {Number(item.buyPrice).toLocaleString('id-ID')}</TableCell>
-                      <TableCell className="text-right">{item.stock !== undefined ? String(item.stock) : '-'}</TableCell>
-                      <TableCell className="text-right">{String(item.minStock)}</TableCell>
-                      <TableCell className="text-right">{String(item.maxStock)}</TableCell>
+                      <TableCell className="text-right text-sm">
+                        {isJasa ? '—' : (item.quantity !== undefined ? String(item.quantity) : '—')}
+                      </TableCell>
+                      <TableCell className="text-right text-sm">
+                        Rp {Number(item.sellPrice).toLocaleString('id-ID')}
+                      </TableCell>
+                      <TableCell className="text-right text-sm">
+                        Rp {Number(item.buyPrice).toLocaleString('id-ID')}
+                      </TableCell>
+                      <TableCell className="text-right text-sm">
+                        {isJasa ? '—' : (
+                          <span className={isLowStock ? 'text-destructive font-semibold' : ''}>
+                            {item.stock !== undefined ? String(item.stock) : '—'}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right text-sm">
+                        {isJasa ? '—' : String(item.minStock)}
+                      </TableCell>
+                      <TableCell className="text-right text-sm">
+                        {isJasa ? '—' : String(item.maxStock)}
+                      </TableCell>
                       {canEdit && (
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(item)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => openEdit(item)}
+                            >
                               <Pencil className="w-3.5 h-3.5" />
                             </Button>
                             <Button
@@ -345,28 +365,28 @@ export default function InventoryPage() {
           <DialogHeader>
             <DialogTitle>{editingItem ? 'Edit Item' : 'Add New Item'}</DialogTitle>
             <DialogDescription>
-              {editingItem ? 'Update the inventory item details.' : 'Fill in the details to add a new inventory item.'}
+              {editingItem ? 'Update the item details below.' : 'Fill in the details for the new item.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="itemCode">Item Code</Label>
+                <Label htmlFor="inv-itemCode">Item Code</Label>
                 <Input
-                  id="itemCode"
+                  id="inv-itemCode"
                   value={form.itemCode}
-                  onChange={(e) => setForm((p) => ({ ...p, itemCode: e.target.value }))}
-                  placeholder="e.g. BRG001"
+                  onChange={(e) => setForm({ ...form, itemCode: e.target.value })}
                   disabled={!!editingItem}
+                  placeholder="e.g. PRD-001"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="type">Type</Label>
+                <Label htmlFor="inv-type">Type</Label>
                 <Select
                   value={form.type}
-                  onValueChange={(v) => setForm((p) => ({ ...p, type: v as 'barang' | 'jasa' }))}
+                  onValueChange={(v) => setForm({ ...form, type: v as 'barang' | 'jasa' })}
                 >
-                  <SelectTrigger id="type">
+                  <SelectTrigger id="inv-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -376,83 +396,86 @@ export default function InventoryPage() {
                 </Select>
               </div>
             </div>
-
             <div className="space-y-1.5">
-              <Label htmlFor="itemName">Item Name</Label>
+              <Label htmlFor="inv-itemName">Item Name</Label>
               <Input
-                id="itemName"
+                id="inv-itemName"
                 value={form.itemName}
-                onChange={(e) => setForm((p) => ({ ...p, itemName: e.target.value }))}
-                placeholder="Enter item name"
+                onChange={(e) => setForm({ ...form, itemName: e.target.value })}
+                placeholder="Product name"
               />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="sellPrice">Sell Price (Rp)</Label>
+                <Label htmlFor="inv-sellPrice">Sell Price</Label>
                 <Input
-                  id="sellPrice"
+                  id="inv-sellPrice"
                   type="number"
+                  min="0"
                   value={form.sellPrice}
-                  onChange={(e) => setForm((p) => ({ ...p, sellPrice: e.target.value }))}
+                  onChange={(e) => setForm({ ...form, sellPrice: e.target.value })}
                   placeholder="0"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="buyPrice">Buy Price (Rp)</Label>
+                <Label htmlFor="inv-buyPrice">Buy Price</Label>
                 <Input
-                  id="buyPrice"
+                  id="inv-buyPrice"
                   type="number"
+                  min="0"
                   value={form.buyPrice}
-                  onChange={(e) => setForm((p) => ({ ...p, buyPrice: e.target.value }))}
+                  onChange={(e) => setForm({ ...form, buyPrice: e.target.value })}
                   placeholder="0"
                 />
               </div>
             </div>
-
             {form.type === 'barang' && (
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="quantity">Quantity per Unit</Label>
+                    <Label htmlFor="inv-quantity">Quantity</Label>
                     <Input
-                      id="quantity"
+                      id="inv-quantity"
                       type="number"
+                      min="0"
                       value={form.quantity}
-                      onChange={(e) => setForm((p) => ({ ...p, quantity: e.target.value }))}
-                      placeholder="1"
+                      onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                      placeholder="0"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="stock">Current Stock</Label>
+                    <Label htmlFor="inv-stock">Stock</Label>
                     <Input
-                      id="stock"
+                      id="inv-stock"
                       type="number"
+                      min="0"
                       value={form.stock}
-                      onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))}
+                      onChange={(e) => setForm({ ...form, stock: e.target.value })}
                       placeholder="0"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="minStock">Min Stock</Label>
+                    <Label htmlFor="inv-minStock">Min Stock</Label>
                     <Input
-                      id="minStock"
+                      id="inv-minStock"
                       type="number"
+                      min="0"
                       value={form.minStock}
-                      onChange={(e) => setForm((p) => ({ ...p, minStock: e.target.value }))}
+                      onChange={(e) => setForm({ ...form, minStock: e.target.value })}
                       placeholder="0"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="maxStock">Max Stock</Label>
+                    <Label htmlFor="inv-maxStock">Max Stock</Label>
                     <Input
-                      id="maxStock"
+                      id="inv-maxStock"
                       type="number"
+                      min="0"
                       value={form.maxStock}
-                      onChange={(e) => setForm((p) => ({ ...p, maxStock: e.target.value }))}
-                      placeholder="100"
+                      onChange={(e) => setForm({ ...form, maxStock: e.target.value })}
+                      placeholder="0"
                     />
                   </div>
                 </div>
@@ -460,13 +483,8 @@ export default function InventoryPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isSaving || !form.itemCode.trim() || !form.itemName.trim()}
-            >
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave} disabled={isSaving}>
               {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {editingItem ? 'Save Changes' : 'Add Item'}
             </Button>
@@ -489,7 +507,7 @@ export default function InventoryPage() {
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete'}
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

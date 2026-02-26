@@ -16,6 +16,8 @@ import ProductsPage from './pages/ProductsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
 import UserDataPage from './pages/UserDataPage';
+import { ServicePage } from './pages/ServicePage';
+import { ReportsPage } from './pages/ReportsPage';
 import { MainNav } from './components/layout/MainNav';
 
 const queryClient = new QueryClient({
@@ -27,7 +29,7 @@ function RootLayout() {
   return (
     <div className="min-h-screen bg-background">
       <MainNav />
-      <main>
+      <main className="p-4 md:p-6">
         <Outlet />
       </main>
     </div>
@@ -68,12 +70,26 @@ const usersRoute = createRoute({
   component: UserDataPage,
 });
 
+const serviceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/service',
+  component: ServicePage,
+});
+
+const reportsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reports',
+  component: ReportsPage,
+});
+
 const routeTree = rootRoute.addChildren([
   posRoute,
   productsRoute,
   historyRoute,
   settingsRoute,
   usersRoute,
+  serviceRoute,
+  reportsRoute,
 ]);
 
 const router = createRouter({ routeTree });

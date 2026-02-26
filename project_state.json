@@ -1,43 +1,24 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Web app with user management and product management features. Includes role-based authorization (Admin, User, Kasir). Users have accessibility/checklist options in their profiles.",
-  "architectural_notes": [
-    "Role-based authorization system with three roles: Admin, User, Kasir",
-    "Admin role should have full access including adding products"
-  ],
+  "summary": "Project with admin product management functionality. User is experiencing a bug where adding a product is blocked with 'only admin can add new products' error, even when logged in as admin.",
+  "architectural_notes": [],
   "known_issues": [
-    "Add product button on product page fails with no authorization error even when logged in as Admin"
+    "Admin role check for adding products is failing — user logged in as admin still receives 'only admin can add new products' error"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-on-the-user-data-page-add-an-edit-button-menu-action-to-each-user-row-that-opens-an-edit-dialog-allowing-modification-of-the-user-s-role-and-permissions-authorization-settings-the-dialog-should-pre-fill-the-current-user-s-role-and-permissions-checklist-and-save-changes-via-the-existing-useauth-hook-update-function",
-      "title": "On the User Data page, add an Edit button/menu action to each user row that opens an edit dialog allowing modification of the user's role and permissions (authorization settings). The dialog should pre-fill the current user's role and permissions checklist, and save changes via the existing useAuth hook update function.",
+      "id": "feature-fix-the-admin-role-permission-check-that-incorrectly-blocks-logged-in-admin-users-from-adding-new-products-the-frontend-s-role-verification-logic-in-productspage-tsx-and-or-useuserrole-ts-must-correctly-identify-the-current-user-as-admin-and-allow-the-add-new-product-action-to-proceed-without-showing-the-only-admin-can-add-new-products-error",
+      "title": "Fix the admin role/permission check that incorrectly blocks logged-in admin users from adding new products. The frontend's role verification logic (in ProductsPage.tsx and/or useUserRole.ts) must correctly identify the current user as admin and allow the 'Add New Product' action to proceed without showing the 'only admin can add new products' error.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-fix-the-authorization-check-on-the-products-page-productspage-tsx-so-that-clicking-the-add-product-button-correctly-recognizes-a-logged-in-admin-user-as-authorized-and-opens-the-add-product-dialog-investigate-the-permission-role-check-that-gates-the-add-product-action-and-ensure-it-properly-reads-the-current-user-s-role-or-permissions-from-useauth",
-      "title": "Fix the authorization check on the Products page (ProductsPage.tsx) so that clicking the 'Add Product' button correctly recognizes a logged-in Admin user as authorized and opens the add-product dialog. Investigate the permission/role check that gates the add-product action and ensure it properly reads the current user's role or permissions from useAuth.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Add edit menu on each user page for editing authorization",
-      "reqIds": [],
-      "status": "pending"
-    }
-  ],
-  "gameProjectType": "none",
-  "projectName": "Workshop POS",
+  "new_feature_requests": [],
+  "projectName": "Fix admin role check blocking product addition",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

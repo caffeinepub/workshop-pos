@@ -1,59 +1,36 @@
 {
   "kind": "build_request",
-  "title": "Add user edit menu for authorization and fix add-product authorization bug",
-  "projectName": "Workshop POS",
+  "title": "Fix admin role check blocking product addition",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "On the User Data page, add an Edit button/menu action to each user row that opens an edit dialog allowing modification of the user's role and permissions (authorization settings). The dialog should pre-fill the current user's role and permissions checklist, and save changes via the existing useAuth hook update function.",
-      "target": "frontend",
+      "text": "Fix the admin role/permission check that incorrectly blocks logged-in admin users from adding new products. The frontend's role verification logic (in ProductsPage.tsx and/or useUserRole.ts) must correctly identify the current user as admin and allow the 'Add New Product' action to proceed without showing the 'only admin can add new products' error.",
+      "target": "both",
       "source": {
         "messageIds": [
           "msg-4"
         ],
         "quotes": [
-          "pada halaman pengguna masing masing user ditambahkan menu edit untuk keperluan edit otorisasi"
+          "muncul hanya admin yang dapat menambah produk baru, padahal login sebagai admin tapi g bisa juga"
         ]
       },
       "acceptanceCriteria": [
-        "Each user row in UserDataPage displays an Edit button or menu option",
-        "Clicking Edit opens a modal/dialog pre-filled with the user's current role and permissions",
-        "Admin can change the user's role (Admin, User, Kasir) and update their permissions checklist",
-        "Saving the edit dialog updates the user's authorization data via useAuth",
-        "Changes are reflected immediately in the user list without a page reload"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Fix the authorization check on the Products page (ProductsPage.tsx) so that clicking the 'Add Product' button correctly recognizes a logged-in Admin user as authorized and opens the add-product dialog. Investigate the permission/role check that gates the add-product action and ensure it properly reads the current user's role or permissions from useAuth.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-4"
-        ],
-        "quotes": [
-          "pada halaman produk setelah tombol tambahkan produk di klik masih belum bisa karena tidak ada otorisasi, padahal login sebagai admin"
-        ]
-      },
-      "acceptanceCriteria": [
-        "When logged in as Admin, clicking 'Add Product' on the Products page opens the add-product dialog without any authorization error",
-        "The authorization guard on the add-product action correctly reads the current user's role from the auth context",
-        "Admin and User roles can add products; Kasir role cannot",
-        "No false 'no authorization' error is shown to Admin users"
+        "A user logged in as admin can click the 'Add New Product' button without seeing the 'only admin can add new products' error message.",
+        "The role check in ProductsPage.tsx correctly reads the admin role from useUserRole or useAuth and grants access.",
+        "The backend authorization check (if any) correctly identifies the caller as admin and allows the addInventoryItem or equivalent call to succeed.",
+        "Non-admin users (kasir/user roles) still see the appropriate restriction message."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files in frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
-    "Use the existing useAuth hook for all user data reads and writes",
-    "Use the existing PermissionsChecklist component for the permissions edit UI"
+    "Do not change the overall role-based access control architecture.",
+    "Do not modify files listed in frontend.immutablePaths."
   ],
   "nonGoals": [
-    "Redesigning the overall user management page layout",
-    "Adding new roles beyond Admin, User, and Kasir",
-    "Backend changes to the role/authorization model",
-    "Changing the product add/edit form fields"
+    "Adding new user roles or permissions.",
+    "Redesigning the product management UI.",
+    "Changing any unrelated access control rules."
   ],
   "imageRequirements": {
     "required": [],

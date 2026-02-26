@@ -1,8 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { useUserRole } from '../hooks/useUserRole';
 import { useGetAllInventoryItems, useDeleteInventoryItem } from '../hooks/useQueries';
 import { useAddInventoryItem, useUpdateInventoryItem } from '../hooks/useInventory';
-import { useAuth } from '../hooks/useAuth';
-import { InventoryItem, InventoryType } from '../backend';
+import { exportInventoryToCSV, importInventoryFromCSV } from '../utils/excelUtils';
+import { InventoryItem, InventoryType, UserRole } from '../backend';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,8 +14,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,305 +33,330 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Pencil, Trash2, Upload, Download, Loader2, AlertCircle } from 'lucide-react';
-import { exportInventoryToCSV, importInventoryFromCSV } from '../utils/excelUtils';
-import { useQueryClient } from '@tanstack/react-query';
+import { Plus, Pencil, Trash2, Search, Upload, Download, Loader2 } from 'lucide-react';
 
-interface InventoryFormState {
+type ProductFormData = {
   itemCode: string;
   itemName: string;
-  type: 'barang' | 'jasa';
-  quantity: string;
+  type_: InventoryType;
   sellPrice: string;
   buyPrice: string;
   stock: string;
   minStock: string;
   maxStock: string;
-}
+  quantity: string;
+};
 
-function emptyForm(): InventoryFormState {
-  return {
-    itemCode: '',
-    itemName: '',
-    type: 'barang',
-    quantity: '',
-    sellPrice: '',
-    buyPrice: '',
-    stock: '',
-    minStock: '0',
-    maxStock: '100',
-  };
-}
-
-function itemToForm(item: InventoryItem): InventoryFormState {
-  return {
-    itemCode: item.itemCode,
-    itemName: item.itemName,
-    type: item.type === InventoryType.jasa ? 'jasa' : 'barang',
-    quantity: item.quantity !== undefined ? String(item.quantity) : '',
-    sellPrice: String(item.sellPrice),
-    buyPrice: String(item.buyPrice),
-    stock: item.stock !== undefined ? String(item.stock) : '',
-    minStock: String(item.minStock),
-    maxStock: String(item.maxStock),
-  };
-}
-
-function formToItem(form: InventoryFormState): InventoryItem {
-  const isBarang = form.type === 'barang';
-  return {
-    itemCode: form.itemCode.trim(),
-    itemName: form.itemName.trim(),
-    type: form.type === 'jasa' ? InventoryType.jasa : InventoryType.barang,
-    quantity: isBarang && form.quantity !== '' ? BigInt(form.quantity) : undefined,
-    sellPrice: BigInt(form.sellPrice || '0'),
-    buyPrice: BigInt(form.buyPrice || '0'),
-    stock: isBarang && form.stock !== '' ? BigInt(form.stock) : undefined,
-    minStock: BigInt(form.minStock || '0'),
-    maxStock: BigInt(form.maxStock || '0'),
-  };
-}
+const emptyForm: ProductFormData = {
+  itemCode: '',
+  itemName: '',
+  type_: InventoryType.barang,
+  sellPrice: '',
+  buyPrice: '',
+  stock: '',
+  minStock: '',
+  maxStock: '',
+  quantity: '',
+};
 
 export default function ProductsPage() {
   const { currentUser } = useAuth();
-  // Role-based access: Admin and User can edit, Kasir is read-only
-  const canEdit = currentUser?.userRole === 'Admin' || currentUser?.userRole === 'User';
-
+  const { data: backendRole, isLoading: roleLoading } = useUserRole();
   const { data: items = [], isLoading } = useGetAllInventoryItems();
   const addMutation = useAddInventoryItem();
   const updateMutation = useUpdateInventoryItem();
   const deleteMutation = useDeleteInventoryItem();
-  const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-  const [form, setForm] = useState<InventoryFormState>(emptyForm());
+  const [editItem, setEditItem] = useState<InventoryItem | null>(null);
+  const [form, setForm] = useState<ProductFormData>(emptyForm);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<InventoryItem | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = items.filter(
-    (item) =>
-      item.itemName.toLowerCase().includes(search.toLowerCase()) ||
-      item.itemCode.toLowerCase().includes(search.toLowerCase())
-  );
+  // Use backend role as the source of truth for what the backend will actually allow.
+  // Fall back to local auth role if backend role is still loading.
+  const localIsAdmin = currentUser?.userRole === 'Admin';
+  const backendIsAdmin = backendRole === UserRole.admin;
+  const isAdmin = backendIsAdmin || (roleLoading && localIsAdmin);
+  const canAdd = isAdmin;
+  const canEdit = isAdmin || backendRole === UserRole.user || currentUser?.userRole === 'User';
+  const canDelete = isAdmin;
 
-  const openAdd = () => {
-    setEditingItem(null);
-    setForm(emptyForm());
+  const filtered = useMemo(() => {
+    if (!search) return items;
+    const q = search.toLowerCase();
+    return items.filter(
+      (i) =>
+        i.itemName.toLowerCase().includes(q) ||
+        i.itemCode.toLowerCase().includes(q)
+    );
+  }, [items, search]);
+
+  function openAdd() {
+    setEditItem(null);
+    setForm(emptyForm);
     setFormError('');
     setDialogOpen(true);
-  };
+  }
 
-  const openEdit = (item: InventoryItem) => {
-    setEditingItem(item);
-    setForm(itemToForm(item));
+  function openEdit(item: InventoryItem) {
+    setEditItem(item);
+    setForm({
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      type_: item.type,
+      sellPrice: String(item.sellPrice),
+      buyPrice: String(item.buyPrice),
+      stock: item.stock !== undefined ? String(item.stock) : '',
+      minStock: String(item.minStock),
+      maxStock: String(item.maxStock),
+      quantity: item.quantity !== undefined ? String(item.quantity) : '',
+    });
     setFormError('');
     setDialogOpen(true);
-  };
+  }
 
-  const handleSave = async () => {
+  async function handleSubmit() {
     setFormError('');
-    if (!form.itemCode.trim()) { setFormError('Kode item wajib diisi.'); return; }
-    if (!form.itemName.trim()) { setFormError('Nama item wajib diisi.'); return; }
-
-    const item = formToItem(form);
+    if (!form.itemCode || !form.itemName || !form.sellPrice || !form.buyPrice) {
+      setFormError('Kode, nama, harga jual, dan harga beli wajib diisi.');
+      return;
+    }
+    const payload: InventoryItem = {
+      itemCode: form.itemCode,
+      itemName: form.itemName,
+      type: form.type_,
+      sellPrice: BigInt(form.sellPrice || '0'),
+      buyPrice: BigInt(form.buyPrice || '0'),
+      stock: form.stock !== '' ? BigInt(form.stock) : undefined,
+      minStock: BigInt(form.minStock || '0'),
+      maxStock: BigInt(form.maxStock || '0'),
+      quantity: form.quantity !== '' ? BigInt(form.quantity) : undefined,
+    };
     try {
-      if (editingItem) {
-        await updateMutation.mutateAsync(item);
+      if (editItem) {
+        await updateMutation.mutateAsync(payload);
       } else {
-        await addMutation.mutateAsync(item);
+        await addMutation.mutateAsync(payload);
       }
       setDialogOpen(false);
     } catch (err: any) {
-      const msg = err?.message ?? String(err);
-      if (msg.includes('Unauthorized') || msg.includes('authorized')) {
-        setFormError('Anda tidak memiliki izin untuk melakukan tindakan ini.');
+      const msg = err?.message || String(err);
+      if (msg.includes('Only admins') || msg.includes('Unauthorized')) {
+        setFormError(
+          'Akses ditolak: Peran admin backend diperlukan. Pastikan Anda sudah login dengan benar dan coba lagi.'
+        );
       } else if (msg.includes('already exists')) {
-        setFormError('Kode item sudah ada. Gunakan kode yang berbeda.');
+        setFormError('Kode produk sudah ada. Gunakan kode yang berbeda.');
       } else {
-        setFormError(`Error: ${msg}`);
+        setFormError('Gagal menyimpan produk: ' + msg);
       }
     }
-  };
+  }
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
+  async function handleDelete(itemCode: string) {
     try {
-      await deleteMutation.mutateAsync(deleteTarget.itemCode);
-    } catch {
-      // error handled silently
+      await deleteMutation.mutateAsync(itemCode);
+    } catch (err: any) {
+      console.error('Delete error:', err);
     }
     setDeleteTarget(null);
-  };
+  }
 
-  const handleExport = () => {
-    exportInventoryToCSV(items);
-  };
-
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  async function handleExcelUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       const result = await importInventoryFromCSV(file);
-      const parsedItems = result.items;
-      for (const item of parsedItems) {
+      // importInventoryFromCSV returns an ImportResult { items, errors }
+      const importedItems = Array.isArray(result) ? result : result.items;
+      for (const item of importedItems) {
         try {
-          const inventoryItem: InventoryItem = {
-            itemCode: item.itemCode,
-            itemName: item.itemName,
-            type: item.type,
-            quantity: item.quantity,
-            sellPrice: item.sellPrice,
-            buyPrice: item.buyPrice,
-            stock: item.stock,
-            minStock: item.minStock,
-            maxStock: item.maxStock,
-          };
-          const existing = items.find((i) => i.itemCode === item.itemCode);
-          if (existing) {
-            await updateMutation.mutateAsync(inventoryItem);
-          } else {
-            await addMutation.mutateAsync(inventoryItem);
-          }
+          await addMutation.mutateAsync(item);
         } catch {
-          // skip failed items
+          try {
+            await updateMutation.mutateAsync(item);
+          } catch (err2) {
+            console.error('Failed to upsert item:', item.itemCode, err2);
+          }
         }
       }
-      queryClient.invalidateQueries({ queryKey: ['inventoryItems'] });
-    } catch {
-      // import parse error
+    } catch (err) {
+      console.error('Excel import error:', err);
     }
     e.target.value = '';
-  };
+  }
 
-  const isSaving = addMutation.isPending || updateMutation.isPending;
+  function handleExcelDownload() {
+    exportInventoryToCSV(items);
+  }
+
+  const isMutating = addMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Produk & Layanan</h1>
-          <p className="text-muted-foreground text-sm mt-1">Kelola inventaris barang dan jasa</p>
+          <h1 className="text-2xl font-bold text-foreground">Manajemen Produk</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Kelola inventaris produk dan jasa toko Anda
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport} className="gap-2">
-            <Download className="w-4 h-4" />
-            Export CSV
-          </Button>
-          {canEdit && (
-            <>
-              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-2">
-                <Upload className="w-4 h-4" />
-                Import CSV
+        <div className="flex gap-2 flex-wrap">
+          {canAdd && (
+            <label className="cursor-pointer">
+              <Button variant="outline" size="sm" asChild>
+                <span>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Unggah Excel
+                </span>
               </Button>
-              <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-              <Button size="sm" onClick={openAdd} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Tambah Produk
-              </Button>
-            </>
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={handleExcelUpload}
+              />
+            </label>
           )}
+          {canAdd && (
+            <Button variant="outline" size="sm" onClick={handleExcelDownload}>
+              <Download className="w-4 h-4 mr-2" />
+              Unduh Excel
+            </Button>
+          )}
+          <Button size="sm" onClick={openAdd}>
+            <Plus className="w-4 h-4 mr-2" />
+            Tambah Produk
+          </Button>
         </div>
       </div>
 
-      {!canEdit && (
-        <Alert className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Anda login sebagai Kasir. Hanya dapat melihat data produk.</AlertDescription>
-        </Alert>
+      {/* Backend role mismatch warning */}
+      {localIsAdmin && !roleLoading && !backendIsAdmin && (
+        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 rounded-lg px-4 py-3 text-sm">
+          <strong>Perhatian:</strong> Akun lokal Anda adalah Admin, tetapi peran backend saat ini adalah{' '}
+          <strong>{backendRole ?? 'tidak diketahui'}</strong>. Operasi tambah/hapus produk mungkin gagal.
+          Coba logout dan login kembali.
+        </div>
       )}
 
-      <div className="relative mb-4">
+      {/* Error banner */}
+      {formError && !dialogOpen && (
+        <div className="bg-destructive/10 border border-destructive/30 text-destructive rounded-lg px-4 py-3 text-sm">
+          {formError}
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Cari berdasarkan nama atau kode..."
+          placeholder="Cari produk..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-4"
+          className="pl-9"
         />
       </div>
 
+      {/* Table */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden bg-card">
+        <div className="rounded-xl border border-border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead>Kode</TableHead>
-                <TableHead>Nama</TableHead>
+                <TableHead>Nama Produk</TableHead>
                 <TableHead>Tipe</TableHead>
-                <TableHead className="text-right">Qty</TableHead>
                 <TableHead className="text-right">Harga Jual</TableHead>
                 <TableHead className="text-right">Harga Beli</TableHead>
                 <TableHead className="text-right">Stok</TableHead>
-                <TableHead className="text-right">Min</TableHead>
-                <TableHead className="text-right">Max</TableHead>
-                {canEdit && <TableHead className="text-right">Aksi</TableHead>}
+                <TableHead className="text-right">Min/Max</TableHead>
+                {(canEdit || canDelete) && <TableHead className="text-center">Aksi</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={canEdit ? 10 : 9} className="text-center py-12 text-muted-foreground">
-                    {items.length === 0 ? 'Belum ada produk. Klik "Tambah Produk" untuk menambahkan.' : 'Tidak ada item yang cocok.'}
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    Tidak ada produk ditemukan
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((item) => (
-                  <TableRow key={item.itemCode}>
-                    <TableCell className="font-mono text-xs">{item.itemCode}</TableCell>
-                    <TableCell>{item.itemName}</TableCell>
-                    <TableCell>
-                      <Badge variant={item.type === InventoryType.jasa ? 'secondary' : 'outline'} className="text-xs">
-                        {item.type === InventoryType.jasa ? 'Jasa' : 'Barang'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{item.quantity !== undefined ? String(item.quantity) : '-'}</TableCell>
-                    <TableCell className="text-right">Rp {Number(item.sellPrice).toLocaleString('id-ID')}</TableCell>
-                    <TableCell className="text-right">Rp {Number(item.buyPrice).toLocaleString('id-ID')}</TableCell>
-                    <TableCell className="text-right">{item.stock !== undefined ? String(item.stock) : '-'}</TableCell>
-                    <TableCell className="text-right">{String(item.minStock)}</TableCell>
-                    <TableCell className="text-right">{String(item.maxStock)}</TableCell>
-                    {canEdit && (
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(item)}>
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => setDeleteTarget(item)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
+                filtered.map((item) => {
+                  const isLowStock =
+                    item.type === InventoryType.barang &&
+                    item.stock !== undefined &&
+                    item.stock <= item.minStock;
+                  return (
+                    <TableRow
+                      key={item.itemCode}
+                      className={isLowStock ? 'bg-destructive/5' : ''}
+                    >
+                      <TableCell className="font-mono text-sm">{item.itemCode}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{item.itemName}</div>
+                        {isLowStock && (
+                          <div className="text-xs text-destructive mt-0.5">Stok rendah!</div>
+                        )}
                       </TableCell>
-                    )}
-                  </TableRow>
-                ))
+                      <TableCell>
+                        <Badge variant={item.type === InventoryType.barang ? 'default' : 'secondary'}>
+                          {item.type === InventoryType.barang ? 'Barang' : 'Jasa'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        Rp {Number(item.sellPrice).toLocaleString('id-ID')}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        Rp {Number(item.buyPrice).toLocaleString('id-ID')}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.type === InventoryType.barang
+                          ? item.stock !== undefined
+                            ? Number(item.stock)
+                            : '-'
+                          : '-'}
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground">
+                        {Number(item.minStock)}/{Number(item.maxStock)}
+                      </TableCell>
+                      {(canEdit || canDelete) && (
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            {canEdit && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => openEdit(item)}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => setDeleteTarget(item.itemCode)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -333,160 +367,130 @@ export default function ProductsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingItem ? 'Edit Item' : 'Tambah Produk Baru'}</DialogTitle>
-            <DialogDescription>
-              {editingItem ? 'Perbarui detail produk.' : 'Isi detail untuk menambahkan produk baru.'}
-            </DialogDescription>
+            <DialogTitle>{editItem ? 'Edit Produk' : 'Tambah Produk Baru'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {formError && (
+              <div className="bg-destructive/10 border border-destructive/30 text-destructive rounded-lg px-3 py-2 text-sm">
+                {formError}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="p-itemCode">Kode Item</Label>
+                <Label>Kode Produk *</Label>
                 <Input
-                  id="p-itemCode"
                   value={form.itemCode}
-                  onChange={(e) => setForm((p) => ({ ...p, itemCode: e.target.value }))}
-                  placeholder="Contoh: BRG001"
-                  disabled={!!editingItem}
+                  onChange={(e) => setForm((f) => ({ ...f, itemCode: e.target.value }))}
+                  disabled={!!editItem}
+                  placeholder="P001"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="p-type">Tipe</Label>
-                <Select
-                  value={form.type}
-                  onValueChange={(v) => setForm((p) => ({ ...p, type: v as 'barang' | 'jasa' }))}
+                <Label>Tipe</Label>
+                <select
+                  className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
+                  value={form.type_}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, type_: e.target.value as InventoryType }))
+                  }
                 >
-                  <SelectTrigger id="p-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="barang">Barang</SelectItem>
-                    <SelectItem value="jasa">Jasa</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value={InventoryType.barang}>Barang</option>
+                  <option value={InventoryType.jasa}>Jasa</option>
+                </select>
               </div>
             </div>
-
             <div className="space-y-1.5">
-              <Label htmlFor="p-itemName">Nama Item</Label>
+              <Label>Nama Produk *</Label>
               <Input
-                id="p-itemName"
                 value={form.itemName}
-                onChange={(e) => setForm((p) => ({ ...p, itemName: e.target.value }))}
-                placeholder="Masukkan nama item"
+                onChange={(e) => setForm((f) => ({ ...f, itemName: e.target.value }))}
+                placeholder="Nama produk atau jasa"
               />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="p-sellPrice">Harga Jual (Rp)</Label>
+                <Label>Harga Jual (Rp) *</Label>
                 <Input
-                  id="p-sellPrice"
                   type="number"
                   value={form.sellPrice}
-                  onChange={(e) => setForm((p) => ({ ...p, sellPrice: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, sellPrice: e.target.value }))}
                   placeholder="0"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="p-buyPrice">Harga Beli (Rp)</Label>
+                <Label>Harga Beli (Rp) *</Label>
                 <Input
-                  id="p-buyPrice"
                   type="number"
                   value={form.buyPrice}
-                  onChange={(e) => setForm((p) => ({ ...p, buyPrice: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, buyPrice: e.target.value }))}
                   placeholder="0"
                 />
               </div>
             </div>
-
-            {form.type === 'barang' && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="p-quantity">Jumlah per Unit</Label>
-                    <Input
-                      id="p-quantity"
-                      type="number"
-                      value={form.quantity}
-                      onChange={(e) => setForm((p) => ({ ...p, quantity: e.target.value }))}
-                      placeholder="1"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="p-stock">Stok Saat Ini</Label>
-                    <Input
-                      id="p-stock"
-                      type="number"
-                      value={form.stock}
-                      onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))}
-                      placeholder="0"
-                    />
-                  </div>
+            {form.type_ === InventoryType.barang && (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Stok</Label>
+                  <Input
+                    type="number"
+                    value={form.stock}
+                    onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
+                    placeholder="0"
+                  />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="p-minStock">Stok Minimum</Label>
-                    <Input
-                      id="p-minStock"
-                      type="number"
-                      value={form.minStock}
-                      onChange={(e) => setForm((p) => ({ ...p, minStock: e.target.value }))}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="p-maxStock">Stok Maksimum</Label>
-                    <Input
-                      id="p-maxStock"
-                      type="number"
-                      value={form.maxStock}
-                      onChange={(e) => setForm((p) => ({ ...p, maxStock: e.target.value }))}
-                      placeholder="100"
-                    />
-                  </div>
+                <div className="space-y-1.5">
+                  <Label>Min Stok</Label>
+                  <Input
+                    type="number"
+                    value={form.minStock}
+                    onChange={(e) => setForm((f) => ({ ...f, minStock: e.target.value }))}
+                    placeholder="0"
+                  />
                 </div>
-              </>
-            )}
-
-            {formError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{formError}</AlertDescription>
-              </Alert>
+                <div className="space-y-1.5">
+                  <Label>Max Stok</Label>
+                  <Input
+                    type="number"
+                    value={form.maxStock}
+                    onChange={(e) => setForm((f) => ({ ...f, maxStock: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Batal
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isSaving || !form.itemCode.trim() || !form.itemName.trim()}
-            >
-              {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editingItem ? 'Simpan Perubahan' : 'Tambah Item'}
+            <Button onClick={handleSubmit} disabled={isMutating}>
+              {isMutating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {editItem ? 'Simpan Perubahan' : 'Tambah Produk'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Item</AlertDialogTitle>
+            <AlertDialogTitle>Hapus Produk</AlertDialogTitle>
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus <strong>{deleteTarget?.itemName}</strong>? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus produk ini? Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteTarget && handleDelete(deleteTarget)}
             >
-              Hapus
+              {deleteMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                'Hapus'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

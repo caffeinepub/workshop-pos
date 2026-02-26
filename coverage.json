@@ -1,48 +1,39 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T04:57:08.690Z",
+  "generatedAt": "2026-02-26T08:00:47.821Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "On the User Data page, add an Edit button/menu action to each user row that opens an edit dialog allowing modification of the user's role and permissions (authorization settings). The dialog should pre-fill the current user's role and permissions checklist, and save changes via the existing useAuth hook update function.",
+        "summary": "Fix the admin role/permission check that incorrectly blocks logged-in admin users from adding new products. The frontend's role verification logic (in ProductsPage.tsx and/or useUserRole.ts) must correctly identify the current user as admin and allow the 'Add New Product' action to proceed without showing the 'only admin can add new products' error.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/UserDataPage.tsx"
+          "frontend/src/pages/ProductsPage.tsx",
+          "frontend/src/hooks/useUserRole.ts"
         ],
         "matchedFiles": [
-          "frontend/src/pages/UserDataPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Fix the authorization check on the Products page (ProductsPage.tsx) so that clicking the 'Add Product' button correctly recognizes a logged-in Admin user as authorized and opens the add-product dialog. Investigate the permission/role check that gates the add-product action and ensure it properly reads the current user's role or permissions from useAuth.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/ProductsPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/ProductsPage.tsx"
+          "frontend/src/pages/ProductsPage.tsx",
+          "frontend/src/hooks/useUserRole.ts"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/hooks/useInventory.ts",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/hooks/useUserRole.ts",
     "frontend/src/pages/ProductsPage.tsx",
-    "frontend/src/pages/UserDataPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

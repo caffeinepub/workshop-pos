@@ -1,12 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Add an edit menu for user authorization on the User Data page and fix the Add Product authorization bug on the Products page.
+**Goal:** Fix the admin role check that incorrectly blocks logged-in admin users from adding new products.
 
 **Planned changes:**
-- Add an Edit button/menu action to each user row in UserDataPage that opens a modal dialog pre-filled with the user's current role and permissions
-- The edit dialog allows an Admin to change the user's role (Admin, User, Kasir) and update their permissions checklist using the existing PermissionsChecklist component
-- Saving the dialog updates the user's authorization data via the existing useAuth hook and reflects changes immediately in the user list
-- Fix the authorization check in ProductsPage so that clicking "Add Product" correctly recognizes an Admin user as authorized and opens the add-product dialog without errors
+- Fix the role verification logic in `ProductsPage.tsx` and/or `useUserRole.ts` so it correctly identifies the current user as admin
+- Ensure the "Add New Product" action is allowed for admin users without showing the "only admin can add new products" error
+- Verify the backend authorization check correctly recognizes the admin caller and allows the product addition to proceed
+- Ensure non-admin users (kasir/user roles) still see the appropriate restriction message
 
-**User-visible outcome:** Admins can now edit any user's role and permissions directly from the User Data page, and the Add Product button on the Products page works correctly for Admin users without showing a false authorization error.
+**User-visible outcome:** An admin user can successfully click "Add New Product" and add products without being incorrectly blocked by the role restriction error.

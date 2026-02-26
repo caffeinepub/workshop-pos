@@ -6,26 +6,23 @@ export function useUserRole() {
   const { actor, isFetching: actorFetching } = useActor();
 
   const query = useQuery<UserRole>({
-    queryKey: ['currentUserRole'],
+    queryKey: ['callerUserRole'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return actor.getCallerUserRole();
+      const role = await actor.getCallerUserRole();
+      return role;
     },
     enabled: !!actor && !actorFetching,
-    retry: false,
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 5_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
-
-  const role = query.data;
 
   return {
     ...query,
     isLoading: actorFetching || query.isLoading,
     isFetched: !!actor && query.isFetched,
-    role,
-    isAdmin: role === UserRole.admin,
-    isUser: role === UserRole.user,
-    isKasir: role === UserRole.guest, // guest maps to kasir in UI
-    canEditInventory: role === UserRole.admin || role === UserRole.user,
-    canDeleteInventory: role === UserRole.admin,
   };
 }
