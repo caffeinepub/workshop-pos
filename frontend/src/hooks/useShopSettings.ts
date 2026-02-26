@@ -1,40 +1,57 @@
-// Hook to manage shop settings state and localStorage synchronization
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface ShopSettings {
-  logo: string;
-  name: string;
-  address: string;
-  phone: string;
-  greeting: string;
+  shopName: string;
+  shopAddress: string;
+  shopPhone: string;
+  shopGreeting: string;
+  shopLogoBase64: string;
 }
 
-const SETTINGS_KEY = 'shopSettings';
+const STORAGE_KEY = 'shop_settings';
 
-const DEFAULT_SETTINGS: ShopSettings = {
-  logo: '/assets/generated/shop-logo-placeholder.dim_256x256.png',
-  name: 'Bengkel Maju Jaya',
-  address: 'Jl. Raya No. 1, Jakarta',
-  phone: '021-12345678',
-  greeting: 'Terima kasih telah mempercayakan kendaraan Anda kepada kami!',
+const defaultSettings: ShopSettings = {
+  shopName: 'Toko Saya',
+  shopAddress: 'Jl. Contoh No. 1, Kota',
+  shopPhone: '08123456789',
+  shopGreeting: 'Terima kasih telah berbelanja di toko kami!',
+  shopLogoBase64: '',
 };
 
-export function getShopSettings(): ShopSettings {
+function loadSettings(): ShopSettings {
   try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      return { ...defaultSettings, ...JSON.parse(raw) };
+    }
   } catch {
-    return DEFAULT_SETTINGS;
+    // ignore parse errors
   }
+  return { ...defaultSettings };
+}
+
+// Global listener set so all hook instances stay in sync without context
+const listeners = new Set<() => void>();
+
+function notifyAll() {
+  listeners.forEach((fn) => fn());
 }
 
 export function useShopSettings() {
-  const [settings, setSettings] = useState<ShopSettings>(getShopSettings);
+  const [settings, setSettings] = useState<ShopSettings>(loadSettings);
+
+  useEffect(() => {
+    const refresh = () => setSettings(loadSettings());
+    listeners.add(refresh);
+    return () => {
+      listeners.delete(refresh);
+    };
+  }, []);
 
   const saveSettings = useCallback((newSettings: ShopSettings) => {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(newSettings));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
     setSettings(newSettings);
+    notifyAll();
   }, []);
 
   return { settings, saveSettings };

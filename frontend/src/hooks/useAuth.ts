@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 // Types
+export type UserRole = 'Admin' | 'Kasir' | 'Teknisi';
+export type UserAccessibility = 'Full Access' | 'POS Only' | 'Reports Only';
+
 export interface WorkshopUser {
   username: string;
   password: string;
@@ -8,6 +11,9 @@ export interface WorkshopUser {
   name: string;
   photoBase64?: string;
   isAdmin?: boolean;
+  // Extended fields
+  userRole?: UserRole;
+  accessibility?: UserAccessibility;
 }
 
 interface AuthState {
@@ -19,7 +25,14 @@ interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   getAllUsers: () => WorkshopUser[];
-  addUser: (username: string, password: string, photoBase64?: string) => boolean;
+  addUser: (params: {
+    username: string;
+    password: string;
+    name: string;
+    userRole: UserRole;
+    accessibility: UserAccessibility;
+    photoBase64?: string;
+  }) => boolean;
   deleteUser: (username: string) => boolean;
   updateUserPhoto: (username: string, photoBase64: string) => void;
 }
@@ -35,6 +48,8 @@ const DEFAULT_ADMIN: WorkshopUser = {
   role: 'admin',
   name: 'Administrator',
   isAdmin: true,
+  userRole: 'Admin',
+  accessibility: 'Full Access',
 };
 
 // Get users from localStorage, seeding admin if needed
@@ -53,14 +68,22 @@ function getUsers(): WorkshopUser[] {
       return initial;
     }
     const users: WorkshopUser[] = parsed;
-    // Ensure admin always exists with correct password
-    const hasAdmin = users.some(
-      (u) => u.username === 'admin' && u.password === 'admin123'
-    );
-    if (!hasAdmin) {
-      const withAdmin = [DEFAULT_ADMIN, ...users.filter((u) => u.username !== 'admin')];
+    // Ensure admin always exists with correct password and extended fields
+    const adminIndex = users.findIndex((u) => u.username === 'admin');
+    if (adminIndex === -1) {
+      const withAdmin = [DEFAULT_ADMIN, ...users];
       localStorage.setItem(USERS_KEY, JSON.stringify(withAdmin));
       return withAdmin;
+    }
+    // Ensure admin has correct password and extended fields
+    const admin = users[adminIndex];
+    if (
+      admin.password !== 'admin123' ||
+      !admin.userRole ||
+      !admin.accessibility
+    ) {
+      users[adminIndex] = { ...admin, ...DEFAULT_ADMIN };
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
     }
     return users;
   } catch {
@@ -139,17 +162,26 @@ function AuthProviderComponent({ children }: { children: ReactNode }) {
     return getUsers();
   };
 
-  const addUser = (username: string, password: string, photoBase64?: string): boolean => {
+  const addUser = (params: {
+    username: string;
+    password: string;
+    name: string;
+    userRole: UserRole;
+    accessibility: UserAccessibility;
+    photoBase64?: string;
+  }): boolean => {
     try {
       const users = getUsers();
-      if (users.find((u) => u.username === username)) return false;
+      if (users.find((u) => u.username === params.username)) return false;
       users.push({
-        username,
-        password,
+        username: params.username,
+        password: params.password,
         role: 'user',
-        name: username,
-        photoBase64,
+        name: params.name,
+        photoBase64: params.photoBase64,
         isAdmin: false,
+        userRole: params.userRole,
+        accessibility: params.accessibility,
       });
       saveUsers(users);
       return true;

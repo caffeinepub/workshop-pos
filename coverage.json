@@ -1,28 +1,77 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T01:43:01.622Z",
+  "generatedAt": "2026-02-26T02:36:33.276Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 5,
+    "implemented": 5,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the admin login so that entering username 'admin' and password 'admin123' successfully authenticates and redirects to the main dashboard. Investigate and resolve any credential mismatch, hashing inconsistency, or state initialization issue in the authentication logic inside useAuth.ts and LoginPage.tsx.",
+        "summary": "Create a User Management page (UserDataPage) accessible from the main navigation. The page displays a table/list of all users, showing each user's profile photo (avatar), full name, role, and accessibility level.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useAuth.ts",
-          "frontend/src/pages/LoginPage.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/components/layout/MainNav.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/pages/UserDataPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useAuth.ts",
-          "frontend/src/pages/LoginPage.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/App.tsx",
+          "frontend/src/pages/UserDataPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Implement Add User functionality via a dialog/modal. The form must include fields for: Full Name, Role (dropdown: e.g., Admin, Cashier, Technician), Accessibility options (dropdown or checkboxes: e.g., Full Access, POS Only, Reports Only), Password, and Profile Photo upload. On save, the new user is added to the user list persisted in localStorage.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/UserDataPage.tsx",
+          "frontend/src/hooks/useAuth.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/UserDataPage.tsx",
+          "frontend/src/hooks/useAuth.ts"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Implement Delete User functionality. Each user row has a delete button. Clicking it prompts a confirmation dialog before permanently removing the user from the list. The default admin user (username: admin) must not be deletable.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/UserDataPage.tsx",
+          "frontend/src/hooks/useAuth.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/UserDataPage.tsx",
+          "frontend/src/hooks/useAuth.ts"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Seed a default admin user in the authentication system (useAuth hook) with username='admin' and password='admin123', Role='Admin', and Accessibility='Full Access'. This default user must always exist and cannot be removed.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useAuth.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useAuth.ts"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Add a profile photo upload control to the Add/Edit User modal. Uploaded images are previewed inline before saving. Profile photos are stored in localStorage as base64 strings and displayed as circular avatars in the user list table.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/UserDataPage.tsx",
+          "frontend/src/hooks/useAuth.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/UserDataPage.tsx",
+          "frontend/src/hooks/useAuth.ts"
         ]
       }
     ]
@@ -33,13 +82,7 @@
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/App.tsx",
-    "frontend/src/components/layout/MainNav.tsx",
-    "frontend/src/components/pos/TopNav.tsx",
     "frontend/src/hooks/useAuth.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/LoginPage.tsx",
-    "frontend/src/pages/ServicePage.tsx",
-    "frontend/src/pages/TransactionPage.tsx",
     "frontend/src/pages/UserDataPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",

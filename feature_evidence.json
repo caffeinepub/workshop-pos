@@ -2,12 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-admin-login-so-that-entering-username-admin-and-password-admin123-successfully-authenticates-and-redirects-to-the-main-dashboard-investigate-and-resolve-any-credential-mismatch-hashing-inconsistency-or-state-initialization-issue-in-the-authentication-logic-inside-useauth-ts-and-loginpage-tsx",
-      "featureTitle": "Fix the admin login so that entering username 'admin' and password 'admin123' successfully authenticates and redirects to the main dashboard. Investigate and resolve any credential mismatch, hashing inconsistency, or state initialization issue in the authentication logic inside useAuth.ts and LoginPage.tsx.",
+      "featureId": "feature-create-a-user-management-page-userdatapage-accessible-from-the-main-navigation-the-page-displays-a-table-list-of-all-users-showing-each-user-s-profile-photo-avatar-full-name-role-and-accessibility-level",
+      "featureTitle": "Create a User Management page (UserDataPage) accessible from the main navigation. The page displays a table/list of all users, showing each user's profile photo (avatar), full name, role, and accessibility level.",
       "files": [
         "frontend/src/App.tsx",
-        "frontend/src/hooks/useAuth.ts",
-        "frontend/src/pages/LoginPage.tsx"
+        "frontend/src/pages/UserDataPage.tsx"
       ],
       "components": [
         "core-infrastructure@1.0.2",
@@ -19,6 +18,85 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-add-user-functionality-via-a-dialog-modal-the-form-must-include-fields-for-full-name-role-dropdown-e-g-admin-cashier-technician-accessibility-options-dropdown-or-checkboxes-e-g-full-access-pos-only-reports-only-password-and-profile-photo-upload-on-save-the-new-user-is-added-to-the-user-list-persisted-in-localstorage",
+      "featureTitle": "Implement Add User functionality via a dialog/modal. The form must include fields for: Full Name, Role (dropdown: e.g., Admin, Cashier, Technician), Accessibility options (dropdown or checkboxes: e.g., Full Access, POS Only, Reports Only), Password, and Profile Photo upload. On save, the new user is added to the user list persisted in localStorage.",
+      "files": [
+        "frontend/src/hooks/useAuth.ts",
+        "frontend/src/pages/UserDataPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-delete-user-functionality-each-user-row-has-a-delete-button-clicking-it-prompts-a-confirmation-dialog-before-permanently-removing-the-user-from-the-list-the-default-admin-user-username-admin-must-not-be-deletable",
+      "featureTitle": "Implement Delete User functionality. Each user row has a delete button. Clicking it prompts a confirmation dialog before permanently removing the user from the list. The default admin user (username: admin) must not be deletable.",
+      "files": [
+        "frontend/src/hooks/useAuth.ts",
+        "frontend/src/pages/UserDataPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-seed-a-default-admin-user-in-the-authentication-system-useauth-hook-with-username-admin-and-password-admin123-role-admin-and-accessibility-full-access-this-default-user-must-always-exist-and-cannot-be-removed",
+      "featureTitle": "Seed a default admin user in the authentication system (useAuth hook) with username='admin' and password='admin123', Role='Admin', and Accessibility='Full Access'. This default user must always exist and cannot be removed.",
+      "files": [
+        "frontend/src/hooks/useAuth.ts"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-profile-photo-upload-control-to-the-add-edit-user-modal-uploaded-images-are-previewed-inline-before-saving-profile-photos-are-stored-in-localstorage-as-base64-strings-and-displayed-as-circular-avatars-in-the-user-list-table",
+      "featureTitle": "Add a profile photo upload control to the Add/Edit User modal. Uploaded images are previewed inline before saving. Profile photos are stored in localStorage as base64 strings and displayed as circular avatars in the user list table.",
+      "files": [
+        "frontend/src/hooks/useAuth.ts",
+        "frontend/src/pages/UserDataPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
       ],
       "confidence": "high"
     }

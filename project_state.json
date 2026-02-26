@@ -1,22 +1,64 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
-  "architectural_notes": [],
+  "summary": "POS/retail application with settings page (store logo, name, address, phone, receipt thank-you message) and now a User Management page being built.",
+  "architectural_notes": [
+    "Default admin account: username=admin, password=admin123"
+  ],
   "known_issues": [],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-fix-the-admin-login-so-that-entering-username-admin-and-password-admin123-successfully-authenticates-and-redirects-to-the-main-dashboard-investigate-and-resolve-any-credential-mismatch-hashing-inconsistency-or-state-initialization-issue-in-the-authentication-logic-inside-useauth-ts-and-loginpage-tsx",
-      "title": "Fix the admin login so that entering username 'admin' and password 'admin123' successfully authenticates and redirects to the main dashboard. Investigate and resolve any credential mismatch, hashing inconsistency, or state initialization issue in the authentication logic inside useAuth.ts and LoginPage.tsx.",
+      "id": "feature-create-a-user-management-page-userdatapage-accessible-from-the-main-navigation-the-page-displays-a-table-list-of-all-users-showing-each-user-s-profile-photo-avatar-full-name-role-and-accessibility-level",
+      "title": "Create a User Management page (UserDataPage) accessible from the main navigation. The page displays a table/list of all users, showing each user's profile photo (avatar), full name, role, and accessibility level.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-implement-add-user-functionality-via-a-dialog-modal-the-form-must-include-fields-for-full-name-role-dropdown-e-g-admin-cashier-technician-accessibility-options-dropdown-or-checkboxes-e-g-full-access-pos-only-reports-only-password-and-profile-photo-upload-on-save-the-new-user-is-added-to-the-user-list-persisted-in-localstorage",
+      "title": "Implement Add User functionality via a dialog/modal. The form must include fields for: Full Name, Role (dropdown: e.g., Admin, Cashier, Technician), Accessibility options (dropdown or checkboxes: e.g., Full Access, POS Only, Reports Only), Password, and Profile Photo upload. On save, the new user is added to the user list persisted in localStorage.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-delete-user-functionality-each-user-row-has-a-delete-button-clicking-it-prompts-a-confirmation-dialog-before-permanently-removing-the-user-from-the-list-the-default-admin-user-username-admin-must-not-be-deletable",
+      "title": "Implement Delete User functionality. Each user row has a delete button. Clicking it prompts a confirmation dialog before permanently removing the user from the list. The default admin user (username: admin) must not be deletable.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-seed-a-default-admin-user-in-the-authentication-system-useauth-hook-with-username-admin-and-password-admin123-role-admin-and-accessibility-full-access-this-default-user-must-always-exist-and-cannot-be-removed",
+      "title": "Seed a default admin user in the authentication system (useAuth hook) with username='admin' and password='admin123', Role='Admin', and Accessibility='Full Access'. This default user must always exist and cannot be removed.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-profile-photo-upload-control-to-the-add-edit-user-modal-uploaded-images-are-previewed-inline-before-saving-profile-photos-are-stored-in-localstorage-as-base64-strings-and-displayed-as-circular-avatars-in-the-user-list-table",
+      "title": "Add a profile photo upload control to the Add/Edit User modal. Uploaded images are previewed inline before saving. Profile photos are stored in localStorage as base64 strings and displayed as circular avatars in the user list table.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix broken admin login authentication",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "User Management page: list users, add/delete users, fields for name, role, accessibility options, password, and profile photo upload. Default admin: username=admin, password=admin123.",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Workshop POS",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

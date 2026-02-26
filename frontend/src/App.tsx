@@ -1,58 +1,81 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
-  RouterProvider,
   createRouter,
   createRoute,
   createRootRoute,
+  RouterProvider,
   Outlet,
 } from '@tanstack/react-router';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { Toaster } from '@/components/ui/sonner';
 
+import LoginPage from './pages/LoginPage';
 import { PosPage } from './pages/PosPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { HistoryPage } from './pages/HistoryPage';
-import LoginPage from './pages/LoginPage';
-import { TopNav } from './components/pos/TopNav';
+import SettingsPage from './pages/SettingsPage';
+import { UserDataPage } from './pages/UserDataPage';
+import { MainNav } from './components/layout/MainNav';
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
+  defaultOptions: { queries: { retry: false } },
 });
 
-// Root layout with TopNav — must be inside AuthProvider context
+// Root layout component with MainNav
 function RootLayout() {
-  const { logout, currentUser } = useAuth();
   return (
     <div className="min-h-screen bg-background">
-      <TopNav onLogout={logout} currentUser={currentUser?.name ?? ''} />
-      <Outlet />
+      <MainNav />
+      <main>
+        <Outlet />
+      </main>
     </div>
   );
 }
 
-// Routes
-const rootRoute = createRootRoute({ component: RootLayout });
+const rootRoute = createRootRoute({
+  component: RootLayout,
+});
+
 const posRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   component: PosPage,
 });
+
 const productsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/products',
   component: ProductsPage,
 });
+
 const historyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/history',
   component: HistoryPage,
 });
 
-const routeTree = rootRoute.addChildren([posRoute, productsRoute, historyRoute]);
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  component: SettingsPage,
+});
+
+const usersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/users',
+  component: UserDataPage,
+});
+
+const routeTree = rootRoute.addChildren([
+  posRoute,
+  productsRoute,
+  historyRoute,
+  settingsRoute,
+  usersRoute,
+]);
+
 const router = createRouter({ routeTree });
 
 declare module '@tanstack/react-router' {
@@ -68,7 +91,12 @@ function AppContent() {
     return <LoginPage />;
   }
 
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+      <Toaster />
+    </>
+  );
 }
 
 export default function App() {

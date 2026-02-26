@@ -1,29 +1,55 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T01:43:01.619Z",
-  "summary": "The diff implements REQ-1 by fixing admin login authentication in useAuth.ts and LoginPage.tsx. The useAuth.ts now stores plain-text passwords, seeds the DEFAULT_ADMIN ('admin'/'admin123') on initialization, and performs direct string comparison during login. LoginPage.tsx handles the login flow correctly, shows error messages, and relies on App.tsx's conditional rendering to redirect on success. localStorage is used as the persistence layer. All four acceptance criteria appear to be satisfied. One hallucinated feature was added: a new useQueries.ts file with React Query hooks for backend operations, which was not requested.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-02-26T02:36:33.273Z",
+  "summary": "The diff implements most requirements: UserDataPage is created with a user table, Add User dialog, Delete User with confirmation, default admin seeding in useAuth, and profile photo upload/preview. The navigation route and useAuth hook are updated accordingly. However, some acceptance criteria have gaps, particularly around the role dropdown options (spec says 'Cashier/Technician' but implementation uses 'Kasir/Teknisi'), and the 'edit dialog avatar replacement' feature appears to be implemented as an inline table hover action rather than an edit dialog. Overall coverage is high.",
+  "missing_requirements": [
     {
-      "description": "A new file frontend/src/hooks/useQueries.ts was added with React Query hooks for all backend operations (inventory, transactions, service records, customers, reports) including error handling to return empty arrays instead of throwing.",
-      "reason": "The build request only asked to fix the admin login authentication issue in useAuth.ts and LoginPage.tsx. Adding a new useQueries.ts file with comprehensive backend query hooks was not requested.",
+      "requirement": "Role dropdown options should include 'Cashier' and 'Technician' (English labels as specified: Admin, Cashier, Technician)",
+      "reason": "The spec AC for REQ-2 states Role select options: 'Admin / Cashier / Technician'. The implementation uses 'Kasir' and 'Teknisi' (Indonesian labels) instead of 'Cashier' and 'Technician'.",
       "evidence": [
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/pages/UserDataPage.tsx",
+        "frontend/src/hooks/useAuth.ts"
+      ]
+    },
+    {
+      "requirement": "REQ-5 AC: Clicking the avatar area in the edit dialog allows replacing the photo",
+      "reason": "The diff summary describes a hover-to-replace camera overlay on the table row avatar, not an 'edit dialog' flow. There is no evidence of a separate edit dialog for replacing a photo; the replacement appears to be inline in the table rather than in a dedicated edit dialog.",
+      "evidence": [
+        "frontend/src/pages/UserDataPage.tsx",
+        "frontend-file-summaries.txt"
       ]
     }
   ],
-  "confidence": 0.82,
+  "hallucinated_features": [
+    {
+      "description": "Username field added to the Add User form",
+      "reason": "The build request REQ-2 specifies form fields: Full Name, Role, Accessibility, Password, and Profile Photo. It does not mention a separate 'Username' field distinct from Full Name. The implementation adds a 'newUsername' field and requires it for validation.",
+      "evidence": [
+        "frontend/src/pages/UserDataPage.tsx"
+      ]
+    },
+    {
+      "description": "Show/hide password toggle in the Add User form",
+      "reason": "The build request does not mention a password visibility toggle. The implementation includes a 'showPassword' state and toggle button.",
+      "evidence": [
+        "frontend/src/pages/UserDataPage.tsx"
+      ]
+    },
+    {
+      "description": "Inline avatar replacement via hover camera overlay on table rows outside of any dialog",
+      "reason": "The spec only mentions replacing the photo by clicking the avatar area in an edit dialog (REQ-5 AC). The implementation adds a hover-based camera overlay directly on table row avatars, which goes beyond what was specified.",
+      "evidence": [
+        "frontend/src/pages/UserDataPage.tsx",
+        "frontend-file-summaries.txt"
+      ]
+    }
+  ],
+  "confidence": 0.78,
   "changed_files": [
     "frontend-file-summaries.txt",
     "frontend/src/App.tsx",
-    "frontend/src/components/layout/MainNav.tsx",
-    "frontend/src/components/pos/TopNav.tsx",
     "frontend/src/hooks/useAuth.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/LoginPage.tsx",
-    "frontend/src/pages/ServicePage.tsx",
-    "frontend/src/pages/TransactionPage.tsx",
     "frontend/src/pages/UserDataPage.tsx",
     "project_state.json"
   ]
