@@ -1,6 +1,7 @@
 // User Data management page with add/delete users and profile photo upload stored in localStorage
 import { useState, useRef } from 'react';
-import { useAuth, type WorkshopUser } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth';
+import type { WorkshopUser } from '../hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,7 +55,7 @@ export function UserDataPage() {
       toast.error('Admin tidak dapat dihapus');
       return;
     }
-    if (username === currentUser) {
+    if (username === currentUser?.username) {
       toast.error('Tidak dapat menghapus user yang sedang login');
       return;
     }

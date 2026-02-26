@@ -34,6 +34,9 @@ export function MainNav() {
   const currentPath = routerState.location.pathname;
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const displayName = currentUser?.username ?? 'U';
+  const displayInitial = displayName.charAt(0).toUpperCase();
+
   return (
     <header className="border-b border-border bg-card sticky top-0 z-40 no-print">
       <div className="container mx-auto px-4">
@@ -59,7 +62,7 @@ export function MainNav() {
               return (
                 <Link
                   key={path}
-                  to={path}
+                  to={path as any}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-primary text-primary-foreground'
@@ -80,15 +83,15 @@ export function MainNav() {
                 <Button variant="ghost" size="sm" className="gap-2">
                   <Avatar className="w-7 h-7">
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                      {currentUser?.charAt(0).toUpperCase() || 'U'}
+                      {displayInitial}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:block text-sm">{currentUser}</span>
+                  <span className="hidden sm:block text-sm">{displayName}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem disabled className="text-muted-foreground text-xs">
-                  Login sebagai: {currentUser}
+                  Login sebagai: {displayName}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout} className="text-destructive">
@@ -118,7 +121,7 @@ export function MainNav() {
               return (
                 <Link
                   key={path}
-                  to={path}
+                  to={path as any}
                   onClick={() => setMobileOpen(false)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     isActive

@@ -1,9 +1,9 @@
 {
-  "frontend/src/App.tsx": "Main application component with TanStack Router setup, authentication guard that shows LoginPage when not authenticated, and all seven page routes with defensive error handling in the App component.",
+  "frontend/src/App.tsx": "Main app component using named imports for all page and component exports, with QueryClient (retry disabled), AuthProvider wrapping AppContent which conditionally renders LoginPage or the authenticated TanStack Router layout with three routes.",
   "frontend/src/pages/PosPage.tsx": "Point of sale screen with product selection grid, cart management, discount/loyalty controls, and checkout functionality connected to backend.",
   "frontend/src/pages/HistoryPage.tsx": "Transaction history view displaying completed transactions with item details, totals, and applied discounts from backend data.",
   "frontend/src/pages/ProductsPage.tsx": "Product catalog management page with search, table view of all products, and delete functionality.",
-  "frontend/src/components/pos/TopNav.tsx": "Navigation component with three buttons (POS, Products, History) for switching between main application views.",
+  "frontend/src/components/pos/TopNav.tsx": "Navigation header with logo, three nav buttons (POS/Produk/Riwayat), and logout button; exports both named `TopNav` and default export for compatibility.",
   "frontend/src/components/pos/CartLineItems.tsx": "Reusable cart component displaying line items with quantity controls, individual prices, and remove buttons.",
   "frontend/src/hooks/usePosDraft.ts": "React hook managing in-memory POS draft state including items map, discount, loyalty card, currency, and computed subtotals.",
   "frontend/src/hooks/useCurrency.ts": "Utility hook providing currency formatting functions and symbol mapping for USD and EUR.",
@@ -11,6 +11,11 @@
   "frontend/src/hooks/useTransactions.ts": "React Query hook for retrieving transaction history from the backend canister.",
   "frontend/src/hooks/usePersistedDraft.ts": "Hook managing draft persistence to backend and checkout flow with transaction finalization.",
   "frontend/src/index.css": "Global styles with warm amber/ochre theme using OKLCH color system for both light and dark modes.",
-  "frontend/src/hooks/useAuth.ts": "Authentication hook that manages login/logout state using localStorage, with robust error handling, data corruption recovery, and automatic admin credential reset to ensure `admin`/`admin123` always works.",
-  "frontend/src/pages/LoginPage.tsx": "Login page with username/password form, inline loading spinner, defensive error handling with try/catch, and helpful error messages in Indonesian including credential hint when login fails."
+  "frontend/src/hooks/useAuth.ts": "Authentication hook with React Context exporting `WorkshopUser` type and full user management methods (`getAllUsers`, `addUser`, `deleteUser`, `updateUserPhoto`); `currentUser` is a `WorkshopUser` object with `username`, `name`, `role`, and optional `photoBase64`.",
+  "frontend/src/pages/LoginPage.tsx": "Login page with username/password form, inline loading spinner, error display, and a visible demo credentials hint showing admin/admin123 to help users log in successfully.",
+  "frontend/src/hooks/useQueries.ts": "React Query hooks for all backend operations (inventory, transactions, service records, customers, reports) with graceful error handling — all query functions now catch errors and return empty arrays/null instead of throwing, preventing app crashes when the ICP actor rejects anonymous calls.",
+  "frontend/src/components/layout/MainNav.tsx": "Main navigation bar using `currentUser.username` (string) for display and avatar initial, with `to={path as any}` casts for routes outside the registered router type.",
+  "frontend/src/pages/ServicePage.tsx": "Service management page with form and queue display; navigation after service completion uses `to: '/' as any` cast to avoid TypeScript route type errors since `/transaction` is not in this router.",
+  "frontend/src/pages/TransactionPage.tsx": "Transaction/checkout page with customer autocomplete, cart management, and receipt printing; removed `useSearch` dependency since the route search params are not registered in this router.",
+  "frontend/src/pages/UserDataPage.tsx": "User management page importing `WorkshopUser` from `useAuth` and using `currentUser?.username` for the current-user comparison check."
 }

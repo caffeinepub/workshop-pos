@@ -1,48 +1,32 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix admin login credentials not working",
+  "title": "Fix broken admin login authentication",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Fix login authentication logic to ensure the seeded admin account is initialized before validation and that logging in with 'admin'/'admin123' works correctly",
+      "summary": "Fix the admin login credential validation and authentication flow so that username 'admin' with password 'admin123' successfully authenticates and redirects to the main dashboard",
       "acceptanceCriteria": [
-        "Entering username 'admin' and password 'admin123' on the login page and clicking the login button successfully authenticates the user.",
-        "After successful login, the user is redirected to the main dashboard/home page.",
-        "No 'something went wrong' error or blank page is shown during or after login.",
-        "If credentials are wrong, a clear error message is displayed without crashing the page."
+        "Logging in with username 'admin' and password 'admin123' succeeds without any error message.",
+        "After successful login, the user is redirected to the authenticated layout (not kept on LoginPage).",
+        "A wrong username or password shows a clear error message without crashing the app.",
+        "The fix does not break existing user session persistence via localStorage."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useAuth.ts",
           "operation": "modify",
-          "description": "Ensure the default admin account is seeded into localStorage before any login validation occurs. Move the initialization logic to run synchronously at hook initialization or within the login function before credential validation. Fix the login function to correctly hash and compare the provided password against stored credentials, ensuring 'admin'/'admin123' authenticates successfully."
+          "description": "Fix the authentication logic to correctly validate username 'admin' and password 'admin123'. Review the credential comparison logic, ensure password hashing or plaintext comparison is consistent with how credentials are stored in localStorage, and fix any state initialization issues that prevent successful login. Ensure the login function properly sets the authenticated user state and returns success when credentials match."
         },
         {
           "path": "frontend/src/pages/LoginPage.tsx",
           "operation": "modify",
-          "description": "Add defensive error handling to prevent blank pages. Wrap the login form in proper error boundaries or try-catch blocks. Display clear error messages when login fails due to invalid credentials or other issues, ensuring the page never shows a blank screen or unhandled error."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Ensure the LoginPage never shows a blank page or unhandled error by adding error boundaries and defensive rendering logic",
-      "acceptanceCriteria": [
-        "The login page always renders the login form with username and password fields.",
-        "No blank page or unhandled 'something went wrong' error is shown when navigating to the login route.",
-        "Any unexpected runtime error on the login page shows a user-friendly error message instead of a blank screen."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/LoginPage.tsx",
-          "operation": "modify",
-          "description": "Add an error boundary wrapper or fallback UI to catch and display any runtime errors gracefully. Ensure all component rendering is wrapped in defensive checks so that if any hooks or state initialization fails, a fallback login form or error message is displayed instead of a blank page."
+          "description": "Review and fix the login form submission handler to correctly call the useAuth login function, handle the authentication response, and trigger navigation to the main dashboard upon successful login. Ensure error states are displayed clearly when credentials are invalid, and verify that the redirect logic works correctly after authentication succeeds."
         },
         {
           "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Verify that the LoginPage route is correctly wired and that authentication checks do not cause the page to render blank. Ensure that when the user is not authenticated, the LoginPage component is always rendered with proper error handling in place."
+          "description": "Verify and fix the conditional rendering logic that determines whether to show LoginPage or the authenticated TanStack Router layout. Ensure the auth state check correctly reflects the user's authentication status from useAuth, and that successful login immediately triggers the layout switch without requiring a page refresh."
         }
       ]
     }

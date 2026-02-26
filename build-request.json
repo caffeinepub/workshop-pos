@@ -1,55 +1,37 @@
 {
   "kind": "build_request",
-  "title": "Fix admin login credentials not working",
+  "title": "Fix broken admin login authentication",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the login authentication logic in useAuth.ts so that logging in with username 'admin' and password 'admin123' works correctly. Ensure the seeded default admin account is always initialized in localStorage before the login check runs, so the credentials are found and validated successfully.",
+      "text": "Fix the admin login so that entering username 'admin' and password 'admin123' successfully authenticates and redirects to the main dashboard. Investigate and resolve any credential mismatch, hashing inconsistency, or state initialization issue in the authentication logic inside useAuth.ts and LoginPage.tsx.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-recent"
+          "msg-1"
         ],
         "quotes": [
-          "masih belum bisa log in setelah saya masukan user name sdmin dan pasword admin123 klik masuk tapi tidak bisa"
+          "masih eror"
         ]
       },
       "acceptanceCriteria": [
-        "Entering username 'admin' and password 'admin123' on the login page and clicking the login button successfully authenticates the user.",
-        "After successful login, the user is redirected to the main dashboard/home page.",
-        "No 'something went wrong' error or blank page is shown during or after login.",
-        "If credentials are wrong, a clear error message is displayed without crashing the page."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Ensure the LoginPage renders correctly at all times — it must never show a blank page or an unhandled error screen. Wrap the login form in an error boundary or add defensive checks so that any runtime error displays a user-friendly fallback message instead of a blank/crashed page.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-recent"
-        ],
-        "quotes": [
-          "halaman login nya tidak ada hanya tulisa something went wrong"
-        ]
-      },
-      "acceptanceCriteria": [
-        "The login page always renders the login form with username and password fields.",
-        "No blank page or unhandled 'something went wrong' error is shown when navigating to the login route.",
-        "Any unexpected runtime error on the login page shows a user-friendly error message instead of a blank screen."
+        "Logging in with username 'admin' and password 'admin123' succeeds without any error message.",
+        "After successful login, the user is redirected to the authenticated layout (not kept on LoginPage).",
+        "A wrong username or password shows a clear error message without crashing the app.",
+        "The fix does not break existing user session persistence via localStorage."
       ]
     }
   ],
   "constraints": [
-    "Do not change the backend schema or Motoko actor.",
-    "Authentication must continue to use localStorage via the useAuth hook.",
-    "Do not modify files listed in frontend.immutablePaths."
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "Authentication data must continue to use localStorage as the persistence layer.",
+    "Do not change the backend Motoko actor schema or stable variable structure."
   ],
   "nonGoals": [
-    "Adding new user roles or permissions.",
-    "Changing the login UI design.",
-    "Migrating authentication to Internet Identity."
+    "Adding new authentication methods or roles.",
+    "Migrating authentication storage from localStorage to the backend.",
+    "Changing any UI design or layout beyond fixing the login error."
   ],
   "imageRequirements": {
     "required": [],

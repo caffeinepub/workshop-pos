@@ -64,7 +64,8 @@ export function ServicePage() {
         toast.success('Service disimpan, membuka halaman transaksi...');
         const savedName = form.customerName.trim();
         handleReset();
-        navigate({ to: '/transaction', search: { customerName: savedName } });
+        // Navigate to POS page (/) since /transaction doesn't exist in this router
+        navigate({ to: '/' as any });
       } else {
         toast.success('Service masuk antrian');
         handleReset();
@@ -82,7 +83,8 @@ export function ServicePage() {
         repairAction: null,
       });
       toast.success(`Service ${record.customerName} ditandai selesai`);
-      navigate({ to: '/transaction', search: { customerName: record.customerName } });
+      // Navigate to POS page (/) since /transaction doesn't exist in this router
+      navigate({ to: '/' as any });
     } catch {
       toast.error('Gagal memperbarui status');
     }

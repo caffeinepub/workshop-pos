@@ -1,11 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the admin login so that credentials (`admin` / `admin123`) work correctly and the login page always renders without errors.
+**Goal:** Fix the broken admin login authentication so that credentials `admin` / `admin123` work correctly and redirect to the dashboard.
 
 **Planned changes:**
-- Ensure the default admin account is seeded into localStorage before the login check runs in `useAuth.ts`
-- Fix the authentication logic so that the `admin` / `admin123` credentials are found and validated successfully
-- Wrap the LoginPage in an error boundary or add defensive checks to prevent blank pages or unhandled "something went wrong" errors
+- Investigate and fix credential validation logic in `useAuth.ts` and `LoginPage.tsx` (credential mismatch, hashing inconsistency, or state initialization issue)
+- Ensure successful login redirects the user to the authenticated layout/dashboard
+- Ensure wrong credentials display a clear error message without crashing the app
+- Preserve existing session persistence via localStorage
 
-**User-visible outcome:** Users can log in with `admin` / `admin123` and are redirected to the dashboard. The login page always displays the login form, and any unexpected error shows a friendly message instead of a blank screen.
+**User-visible outcome:** The admin can log in with username `admin` and password `admin123` without errors and is taken to the main dashboard. Invalid credentials show a clear error message.

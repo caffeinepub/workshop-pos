@@ -1,33 +1,22 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Aplikasi kasir bengkel dengan masalah login yang belum terselesaikan. User tidak bisa login dengan username 'admin' dan password 'admin123'.",
+  "summary": "New project",
   "architectural_notes": [],
-  "known_issues": [
-    "Login tidak berfungsi: user tidak bisa masuk dengan username 'admin' dan password 'admin123', halaman menampilkan 'something went wrong'"
-  ],
+  "known_issues": [],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-login-authentication-logic-in-useauth-ts-so-that-logging-in-with-username-admin-and-password-admin123-works-correctly-ensure-the-seeded-default-admin-account-is-always-initialized-in-localstorage-before-the-login-check-runs-so-the-credentials-are-found-and-validated-successfully",
-      "title": "Fix the login authentication logic in useAuth.ts so that logging in with username 'admin' and password 'admin123' works correctly. Ensure the seeded default admin account is always initialized in localStorage before the login check runs, so the credentials are found and validated successfully.",
+      "id": "feature-fix-the-admin-login-so-that-entering-username-admin-and-password-admin123-successfully-authenticates-and-redirects-to-the-main-dashboard-investigate-and-resolve-any-credential-mismatch-hashing-inconsistency-or-state-initialization-issue-in-the-authentication-logic-inside-useauth-ts-and-loginpage-tsx",
+      "title": "Fix the admin login so that entering username 'admin' and password 'admin123' successfully authenticates and redirects to the main dashboard. Investigate and resolve any credential mismatch, hashing inconsistency, or state initialization issue in the authentication logic inside useAuth.ts and LoginPage.tsx.",
       "reqIds": [
         "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-ensure-the-loginpage-renders-correctly-at-all-times-it-must-never-show-a-blank-page-or-an-unhandled-error-screen-wrap-the-login-form-in-an-error-boundary-or-add-defensive-checks-so-that-any-runtime-error-displays-a-user-friendly-fallback-message-instead-of-a-blank-crashed-page",
-      "title": "Ensure the LoginPage renders correctly at all times — it must never show a blank page or an unhandled error screen. Wrap the login form in an error boundary or add defensive checks so that any runtime error displays a user-friendly fallback message instead of a blank/crashed page.",
-      "reqIds": [
-        "REQ-2"
       ],
       "version": 1
     }
   ],
   "new_feature_requests": [],
-  "gameProjectType": "none",
-  "projectName": "Aplikasi Kasir Bengkel",
+  "projectName": "Fix broken admin login authentication",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
